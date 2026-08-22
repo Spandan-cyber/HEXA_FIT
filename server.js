@@ -21,11 +21,12 @@ const server = http.createServer((req, res) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   
   let reqPath = req.url.split('?')[0];
-  let filePath = path.join(PUBLIC_DIR, reqPath === '/' ? 'hexafit.html' : reqPath);
+  let fileTarget = reqPath === '/' ? 'index.html' : reqPath;
+  if (fileTarget === '/hexafit.html' || fileTarget === 'hexafit.html') fileTarget = 'index.html';
+  let filePath = path.join(PUBLIC_DIR, fileTarget);
   
   if (!fs.existsSync(filePath)) {
-    // try hexafit.html as fallback
-    filePath = path.join(PUBLIC_DIR, 'hexafit.html');
+    filePath = path.join(PUBLIC_DIR, 'index.html');
   }
 
   const extname = String(path.extname(filePath)).toLowerCase();

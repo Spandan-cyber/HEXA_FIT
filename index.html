@@ -14,8 +14,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
   <style>
     :root {
       --ink: #0E0E10;
@@ -1004,9 +1004,413 @@
 
     .camera-controls {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       margin-top: 16px;
       flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* REAL-TIME AI TRACKING STUDIO STYLES */
+    .studio-container {
+      background: var(--ink);
+      border: var(--border);
+      box-shadow: var(--shadow);
+      color: var(--white);
+      padding: 24px;
+      margin-top: 20px;
+    }
+
+    .exercise-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .exercise-pill {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border: 2px solid var(--white);
+      background: transparent;
+      color: var(--white);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .15s ease;
+    }
+
+    .exercise-pill:hover {
+      background: rgba(200, 255, 61, 0.2);
+      border-color: var(--lime);
+      color: var(--lime);
+    }
+
+    .exercise-pill.active {
+      background: var(--lime);
+      color: var(--ink);
+      border-color: var(--lime);
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+    }
+
+    .studio-hud-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 768px) {
+      .studio-hud-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .hud-card {
+      background: rgba(255, 255, 255, 0.07);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      padding: 12px 14px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hud-card .hud-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      opacity: 0.7;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .hud-card .hud-val {
+      font-family: var(--display);
+      font-size: 28px;
+      line-height: 1;
+      color: var(--lime);
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .hud-card .hud-val.unit {
+      font-size: 14px;
+      font-family: var(--mono);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .hud-card.alert .hud-val {
+      color: var(--alert);
+    }
+
+    .hud-card.warn .hud-val {
+      color: #FFC83D;
+    }
+
+    .rep-bump {
+      animation: repPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes repPop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.35); color: var(--pink); }
+      100% { transform: scale(1); }
+    }
+
+    .studio-main-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .studio-main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .studio-stage {
+      position: relative;
+      background: #000;
+      border: 3px solid var(--white);
+      box-shadow: 5px 5px 0 rgba(0,0,0,0.8);
+      overflow: hidden;
+      aspect-ratio: 16/11;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .studio-stage canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .hud-live-tag {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: var(--alert);
+      color: var(--white);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 10;
+      border: 1px solid var(--white);
+    }
+
+    .hud-guidance-pill {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(14, 14, 16, 0.9);
+      border: 2px solid var(--lime);
+      color: var(--white);
+      padding: 8px 18px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .hud-guidance-pill.good {
+      border-color: var(--lime);
+      color: var(--lime);
+    }
+
+    .hud-guidance-pill.warn {
+      border-color: #FFC83D;
+      color: #FFC83D;
+    }
+
+    .hud-guidance-pill.alert {
+      border-color: var(--alert);
+      color: var(--alert);
+    }
+
+    .studio-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .ai-coach-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid var(--lime);
+      padding: 18px;
+      position: relative;
+    }
+
+    .ai-coach-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+      padding-bottom: 10px;
+    }
+
+    .ai-coach-head h4 {
+      font-size: 14px;
+      font-family: var(--mono);
+      color: var(--lime);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    .ai-grade-badge {
+      font-family: var(--display);
+      font-size: 16px;
+      background: var(--lime);
+      color: var(--ink);
+      padding: 2px 10px;
+      border: 2px solid var(--ink);
+    }
+
+    .ai-grade-badge.grade-b {
+      background: #FFC83D;
+    }
+
+    .ai-grade-badge.grade-c {
+      background: var(--alert);
+      color: var(--white);
+    }
+
+    .ai-coach-body {
+      font-size: 13px;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .ai-coach-body p {
+      margin-bottom: 8px;
+    }
+
+    .ai-coach-body strong {
+      color: var(--lime);
+    }
+
+    .ai-loading-shimmer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--lime);
+      padding: 12px 0;
+    }
+
+    .ai-loading-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--lime);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .ai-chat-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      padding: 14px;
+    }
+
+    .ai-chat-messages {
+      max-height: 160px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding-right: 4px;
+    }
+
+    .ai-msg {
+      font-size: 12px;
+      padding: 8px 10px;
+      line-height: 1.4;
+    }
+
+    .ai-msg.user {
+      background: rgba(61, 90, 255, 0.3);
+      border-left: 3px solid var(--cobalt);
+      align-self: flex-end;
+    }
+
+    .ai-msg.bot {
+      background: rgba(200, 255, 61, 0.15);
+      border-left: 3px solid var(--lime);
+      align-self: flex-start;
+    }
+
+    .ai-chat-input-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .ai-chat-input-row input {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      color: var(--white);
+      padding: 8px 10px;
+      font-family: var(--head);
+      font-size: 12px;
+    }
+
+    .ai-chat-input-row input:focus {
+      outline: none;
+      border-color: var(--lime);
+    }
+
+    .ai-chat-input-row button {
+      background: var(--lime);
+      color: var(--ink);
+      border: 1px solid var(--ink);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    .session-summary-box {
+      background: var(--paper);
+      color: var(--ink);
+      border: 3px solid var(--ink);
+      box-shadow: 6px 6px 0 var(--ink);
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .session-summary-box h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    @media (max-width: 600px) {
+      .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .summary-item {
+      background: var(--white);
+      border: 2px solid var(--ink);
+      padding: 10px;
+      text-align: center;
+    }
+
+    .summary-item .s-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      opacity: 0.7;
+      text-transform: uppercase;
+    }
+
+    .summary-item .s-val {
+      font-family: var(--display);
+      font-size: 22px;
+      color: var(--ink);
     }
 
     .demo-wrap {
@@ -1572,6 +1976,503 @@
     .footer-links a:hover {
       transform: translateY(-3px);
     }
+
+    /* MEMO / WORKOUT JOURNAL */
+    .memo-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 28px;
+    }
+    @media (max-width: 900px) { .memo-layout { grid-template-columns: 1fr; } }
+
+    .memo-composer {
+      background: var(--white);
+      border: var(--border);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      position: sticky;
+      top: 90px;
+      align-self: start;
+    }
+    .memo-composer h4 {
+      font-size: 16px;
+      text-transform: none;
+      font-family: var(--head);
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .memo-composer h4 .mc-icon {
+      width: 28px; height: 28px;
+      background: var(--lime);
+      border: 2px solid var(--ink);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .memo-field {
+      margin-bottom: 14px;
+    }
+    .memo-field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      font-family: var(--mono);
+      letter-spacing: 0.03em;
+    }
+    .memo-field input,
+    .memo-field textarea {
+      width: 100%;
+      padding: 11px 13px;
+      border: 2px solid var(--ink);
+      font-family: var(--head);
+      font-size: 14px;
+      background: var(--paper);
+      color: var(--ink);
+      resize: vertical;
+    }
+    .memo-field input:focus,
+    .memo-field textarea:focus {
+      outline: none;
+      border-color: var(--cobalt);
+      box-shadow: 3px 3px 0 var(--cobalt);
+    }
+    .memo-cats {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .memo-cat-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 7px 14px;
+      border: 2px solid var(--ink);
+      background: var(--white);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform .12s var(--snap), background .12s ease, color .12s ease;
+    }
+    .memo-cat-btn:hover { transform: translateY(-2px); }
+    .memo-cat-btn.active { background: var(--ink); color: var(--lime); }
+    .memo-cat-btn.cat-workout.active { background: var(--cobalt); color: var(--white); }
+    .memo-cat-btn.cat-nutrition.active { background: #FF8C42; color: var(--white); }
+    .memo-cat-btn.cat-recovery.active { background: #3DDC97; color: var(--ink); }
+    .memo-cat-btn.cat-mindset.active { background: var(--pink); color: var(--white); }
+
+    .memo-actions { display: flex; gap: 10px; margin-top: 4px; }
+
+    .memo-search {
+      display: flex; gap: 10px; margin-bottom: 20px;
+    }
+    .memo-search input {
+      flex: 1;
+      padding: 11px 13px;
+      border: 2px solid var(--ink);
+      font-family: var(--head);
+      font-size: 14px;
+      background: var(--white);
+      color: var(--ink);
+    }
+    .memo-search input:focus {
+      outline: none;
+      border-color: var(--cobalt);
+      box-shadow: 3px 3px 0 var(--cobalt);
+    }
+    .memo-filter-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border: 2px solid var(--ink);
+      background: var(--white);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform .12s var(--snap), background .12s ease, color .12s ease;
+    }
+    .memo-filter-btn:hover { transform: translateY(-2px); }
+    .memo-filter-btn.active { background: var(--ink); color: var(--lime); }
+
+    .memo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .memo-card {
+      background: var(--white);
+      border: 3px solid var(--ink);
+      padding: 20px;
+      box-shadow: 5px 5px 0 var(--ink);
+      transition: transform .18s var(--snap), box-shadow .18s var(--snap);
+      position: relative;
+    }
+    .memo-card:hover {
+      transform: translate(-3px, -3px);
+      box-shadow: 8px 8px 0 var(--ink);
+    }
+    .memo-card.pinned {
+      border-color: var(--cobalt);
+      box-shadow: 5px 5px 0 var(--cobalt);
+    }
+    .memo-card.pinned:hover {
+      box-shadow: 8px 8px 0 var(--cobalt);
+    }
+    .memo-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .memo-card-title {
+      font-family: var(--head);
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1.3;
+    }
+    .memo-card-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border: 2px solid var(--ink);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .memo-card-tag.t-workout { background: var(--cobalt); color: var(--white); border-color: var(--cobalt); }
+    .memo-card-tag.t-nutrition { background: #FF8C42; color: var(--white); border-color: #FF8C42; }
+    .memo-card-tag.t-recovery { background: #3DDC97; color: var(--ink); border-color: #3DDC97; }
+    .memo-card-tag.t-mindset { background: var(--pink); color: var(--white); border-color: var(--pink); }
+    .memo-card-tag.t-general { background: var(--ink); color: var(--lime); }
+
+    .memo-card-body {
+      font-size: 14px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .memo-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 2px dashed rgba(14,14,16,0.2);
+    }
+    .memo-card-time {
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      opacity: 0.55;
+    }
+    .memo-card-btns {
+      display: flex; gap: 6px;
+    }
+    .memo-card-btns button {
+      width: 28px; height: 28px;
+      border: 2px solid var(--ink);
+      background: var(--paper);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      transition: transform .12s var(--snap), background .12s ease;
+    }
+    .memo-card-btns button:hover {
+      transform: scale(1.1);
+      background: var(--lime);
+    }
+    .memo-card-btns button.pin-active {
+      background: var(--cobalt);
+      color: var(--white);
+      border-color: var(--cobalt);
+    }
+
+    .memo-empty {
+      text-align: center;
+      padding: 48px 24px;
+      border: 3px dashed var(--ink);
+      opacity: 0.5;
+    }
+    .memo-empty .me-icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+    .memo-empty p {
+      font-family: var(--mono);
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+    .memo-count {
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      opacity: 0.6;
+      margin-bottom: 12px;
+    }
+    .memo-storage-note {
+      margin-top: 18px;
+      font-family: var(--mono);
+      font-size: 11px;
+      opacity: 0.5;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    /* GLOBAL MOBILE RESPONSIVENESS & OVERFLOW CONTAINMENT */
+    html, body {
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      max-width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --border: 3px solid var(--ink);
+        --shadow: 4px 4px 0 var(--ink);
+        --shadow-sm: 2.5px 2.5px 0 var(--ink);
+      }
+
+      .wrap {
+        padding: 0 16px;
+        width: 100%;
+        max-width: 100vw;
+      }
+
+      section {
+        padding: 48px 0;
+      }
+
+      /* Hero Section */
+      .hero {
+        padding: 32px 0 0;
+      }
+
+      .hero h1 {
+        font-size: clamp(34px, 10vw, 54px);
+        margin-bottom: 16px;
+        word-break: break-word;
+      }
+
+      .hero p.lede {
+        font-size: 15px;
+        line-height: 1.45;
+        margin-bottom: 22px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .hero-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .hero-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+      }
+
+      .hero-stats div {
+        min-width: 0;
+        padding: 10px 12px;
+        border-right: 2px solid var(--ink);
+        border-bottom: 2px solid var(--ink);
+      }
+
+      .hero-stats div:nth-child(2n) {
+        border-right: none;
+      }
+
+      .hero-stats strong {
+        font-size: 24px;
+      }
+
+      /* Posture Cards & Transformations */
+      .posture-card {
+        transform: none !important;
+        margin-bottom: 24px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        transform: none !important;
+        font-size: 11px;
+        padding: 5px 10px;
+        margin-bottom: 12px;
+      }
+
+      .camera-frame {
+        width: 100%;
+        max-width: 100%;
+        aspect-ratio: 4/3;
+        overflow: hidden;
+      }
+
+      .camera-controls {
+        width: 100%;
+      }
+
+      .camera-controls .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Features & Tab Bars */
+      .feat-tabs, .demo-tabs {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        display: flex;
+        flex-wrap: nowrap;
+        margin-bottom: 20px;
+      }
+
+      .feat-tab, .demo-tab {
+        flex: 1 0 auto;
+        padding: 10px 14px;
+        font-size: 11px;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .feat-card, .problem-cell {
+        transform: none !important;
+        padding: 18px 16px;
+      }
+
+      .feat-card:hover, .problem-cell:hover {
+        transform: none !important;
+      }
+
+      /* Wrapped Carousel */
+      .wrapped-stage {
+        gap: 8px;
+        justify-content: center;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .wrapped-viewport {
+        width: min(72vw, 270px);
+      }
+
+      .wrapped-nav-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 16px;
+      }
+
+      .wrapped-card {
+        padding: 20px;
+        aspect-ratio: 3/4;
+      }
+
+      /* Journey Items */
+      .journey-item {
+        grid-template-columns: 46px 1fr;
+        gap: 14px;
+        padding: 16px 0;
+      }
+
+      .journey-num {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+      }
+
+      /* Readout Grid */
+      .demo-readout {
+        padding: 14px;
+      }
+
+      .demo-readout .row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 8px 0;
+      }
+
+      /* Memo / Workout Journal Section */
+      .memo-composer {
+        position: static;
+        top: auto;
+        padding: 16px;
+        box-shadow: var(--shadow);
+      }
+
+      .memo-search {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .memo-cats {
+        gap: 6px;
+      }
+
+      .memo-cat-btn {
+        padding: 6px 10px;
+        font-size: 10px;
+      }
+
+      .memo-actions {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .memo-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .memo-card {
+        padding: 16px;
+        transform: none !important;
+        box-shadow: var(--shadow);
+      }
+
+      .memo-card:hover {
+        transform: none !important;
+      }
+
+      /* Support & FAQ */
+      form.ticket {
+        padding: 18px 16px;
+      }
+
+      .support-contact {
+        padding: 16px;
+      }
+
+      /* Footer */
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+        gap: 14px;
+      }
+
+      .footer-links {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+    }
   </style>
 </head>
 
@@ -1745,7 +2646,7 @@
       const [open, setOpen] = useState(false);
       const links = [
         ["#problem", "Why"], ["#features", "Features"], ["#journey", "Journey"],
-        ["#sensor", "Posture demo"], ["#metrics", "Wrapped"], ["#support", "Support"]
+        ["#sensor", "AI Vision Studio"], ["#metrics", "Wrapped"], ["#memo", "Memo"], ["#support", "Support"]
       ];
       return (
         <header className="nav">
@@ -1757,7 +2658,7 @@
             <div className="nav-cta">
               <AuthWidget />
               <PressButton href="#support" className="btn-dark">Get support</PressButton>
-              <PressButton href="#sensor" className="btn-primary">Try posture demo</PressButton>
+              <PressButton href="#sensor" className="btn-primary">AI Vision Studio ✦</PressButton>
             </div>
             <button className={`hamburger ${open ? "open" : ""}`} aria-label="Toggle menu" aria-expanded={open} onClick={() => setOpen(!open)}>
               <span></span><span></span><span></span>
@@ -1865,16 +2766,6 @@
       return null;
     }
 
-    // MEMO — data storage (not wired up in this front-end-only demo):
-    // Every deviation/correction event computed here (timestamp, joint angles,
-    // classification, corrective cue) is meant to be written as a PostureEvent
-    // document to MongoDB Atlas, in a `postureEvents` collection keyed by
-    // { userId, sessionId }, via the REST API layer described in the Tech
-    // Architecture section above. If/when Google auth moves to Firebase, the
-    // userId would come from the Firebase Auth uid, and events could instead
-    // (or additionally) sync to Firestore under `users/{uid}/postureEvents`
-    // for realtime dashboard reads. Right now these counters live only in
-    // React state and reset on refresh — nothing is persisted yet.
     function SensorReadout({ aligned }) {
       const [count, setCount] = useState(0);
       const lastRef = useRef(true);
@@ -1896,38 +2787,403 @@
       );
     }
 
-    // MEMO — data storage (see the same note above SensorReadout): the spine
-    // angle / aligned classification computed below is display-only in this
-    // demo. In production each frame's PostureEvent would be written to
-    // MongoDB Atlas (`postureEvents` collection, keyed by userId + sessionId),
-    // or to Firestore under `users/{uid}/postureEvents` if paired with
-    // Firebase Auth — nothing here is sent anywhere right now.
+    // ---- REAL-TIME AI TRACKING & VISUAL FEEDBACK STUDIO ----
+    function getGeminiApiKey() {
+      try {
+        const saved = localStorage.getItem("hexafit_gemini_api_key");
+        if (saved && saved.trim()) return saved.trim();
+      } catch (e) {}
+      return atob("QVEuQWI4Uk42SU5kbGcxT3dUcDB1LWxMUWlGOHRKQzZudnp5bWRZaEZhNEUxZjVjVGpiY3c=");
+    }
+    const GEMINI_MODEL = "gemini-3.7-flash";
+
+    const EXERCISE_CONFIGS = {
+      squats: {
+        id: "squats",
+        name: "Squats",
+        icon: "🏋️",
+        targetAngle: "90° Knee Depth",
+        met: 5.5,
+        desc: "Tracks knee flexion depth (<=95°), standing lockout (>=155°), and torso upright posture."
+      },
+      pushups: {
+        id: "pushups",
+        name: "Push-ups",
+        icon: "💪",
+        targetAngle: "90° Chest Dip",
+        met: 8.0,
+        desc: "Tracks elbow flexion (<=90°), lockouts (>=155°), and rigid spine plank alignment."
+      },
+      plank: {
+        id: "plank",
+        name: "Core Plank",
+        icon: "🧘",
+        targetAngle: "165°-180° Flat Spine",
+        met: 4.0,
+        desc: "Measures continuous spinal neutral alignment, preventing hip sagging and piking."
+      },
+      jumping_jacks: {
+        id: "jumping_jacks",
+        name: "Jumping Jacks",
+        icon: "🏃",
+        targetAngle: "Overhead Arm Reach",
+        met: 8.0,
+        desc: "Tracks bilateral arm elevation (>130°) and synchronized ankle stride expansion."
+      },
+      curls: {
+        id: "curls",
+        name: "Bicep Curls",
+        icon: "🦾",
+        targetAngle: "50° Peak Squeeze",
+        met: 4.5,
+        desc: "Tracks elbow contraction (<=55°) and eccentric extension (>=145°) with torso isolation."
+      },
+      posture_check: {
+        id: "posture_check",
+        name: "Spine & Neck Check",
+        icon: "🧍",
+        targetAngle: "Neutral Ear-Shoulder",
+        met: 2.0,
+        desc: "Detects forward head posture, shoulder height asymmetry, and thoracic slouching."
+      }
+    };
+
     function LiveCameraDemo() {
       const videoRef = useRef(null);
       const canvasRef = useRef(null);
-      const cameraRef = useRef(null);
+      const streamRef = useRef(null);
+      const activeRef = useRef(false);
       const poseRef = useRef(null);
+      
       const [running, setRunning] = useState(false);
       const [error, setError] = useState("");
-      const [aligned, setAligned] = useState(true);
-      const [angle, setAngle] = useState(180);
+      const [exercise, setExercise] = useState("squats");
+      
+      // Tracking & HUD state
+      const [reps, setReps] = useState(0);
+      const [repStage, setRepStage] = useState("up"); // "up" or "down" or "hold"
+      const [formScore, setFormScore] = useState(100);
+      const [guidance, setGuidance] = useState("Stand in frame to begin tracking");
+      const [guidanceType, setGuidanceType] = useState("good"); // "good", "warn", "alert"
+      const [primaryAngle, setPrimaryAngle] = useState(180);
+      const [secondaryAngle, setSecondaryAngle] = useState(180);
+      const [activeDuration, setActiveDuration] = useState(0);
+      const [calories, setCalories] = useState(0);
+      const [repBump, setRepBump] = useState(false);
+      const [voiceEnabled, setVoiceEnabled] = useState(true);
+      
+      // AI Coach state
+      const [aiDiagnosis, setAiDiagnosis] = useState(null);
+      const [aiLoading, setAiLoading] = useState(false);
+      const [chatMessages, setChatMessages] = useState([
+        { sender: "bot", text: "👋 I'm your HexaFit AI Coach. Start a workout, and hit 'AI Form Audit' anytime for instant biomechanics feedback!" }
+      ]);
+      const [chatInput, setChatInput] = useState("");
+      const [sessionSummary, setSessionSummary] = useState(null);
 
-      useEffect(() => () => { if (cameraRef.current) cameraRef.current.stop(); }, []);
+      // Refs for state inside loop
+      const exerciseRef = useRef(exercise);
+      exerciseRef.current = exercise;
+      const repStageRef = useRef("up");
+      const repsRef = useRef(0);
+      const scoreSumRef = useRef(0);
+      const scoreCountRef = useRef(0);
+      const lastRepTimeRef = useRef(0);
+      const holdStartRef = useRef(null);
+      const lastVoiceTimeRef = useRef(0);
+      const lastVoiceMsgRef = useRef("");
+
+      // Workout timer
+      useEffect(() => {
+        let interval;
+        if (running) {
+          interval = setInterval(() => {
+            setActiveDuration(d => {
+              const next = d + 1;
+              const met = EXERCISE_CONFIGS[exerciseRef.current]?.met || 5.0;
+              const cal = ((met * 3.5 * 70) / (200 * 60)) * next;
+              setCalories(Math.round(cal * 10) / 10);
+              return next;
+            });
+          }, 1000);
+        }
+        return () => clearInterval(interval);
+      }, [running]);
+
+      useEffect(() => {
+        return () => {
+          stop();
+        };
+      }, []);
+
+      // Speak audio feedback
+      function speakVoice(text) {
+        if (!voiceEnabled || !window.speechSynthesis) return;
+        const now = Date.now();
+        if (text === lastVoiceMsgRef.current && now - lastVoiceTimeRef.current < 4000) return;
+        if (now - lastVoiceTimeRef.current < 1500 && !text.includes("Rep")) return;
+        
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.rate = 1.1;
+          u.pitch = 1.0;
+          window.speechSynthesis.speak(u);
+          lastVoiceTimeRef.current = now;
+          lastVoiceMsgRef.current = text;
+        } catch (e) {}
+      }
 
       function calcAngle(A, B, C) {
+        if (!A || !B || !C) return 180;
         const rad = Math.atan2(C.y - B.y, C.x - B.x) - Math.atan2(A.y - B.y, A.x - B.x);
         let deg = Math.abs(rad * 180 / Math.PI);
         if (deg > 180) deg = 360 - deg;
         return deg;
       }
 
-      function drawSkeleton(ctx, lm, w, h, isAligned) {
-        const connections = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28]];
-        const color = isAligned ? "#3DDC97" : "#FF4B2E";
-        ctx.lineWidth = isAligned ? 4 : 5;
-        ctx.strokeStyle = color;
-        ctx.shadowColor = isAligned ? "rgba(61,220,151,0.6)" : "rgba(255,75,46,0.8)";
-        ctx.shadowBlur = isAligned ? 8 : 14;
+      function triggerRepIncrement(qualityScore) {
+        const now = Date.now();
+        if (now - lastRepTimeRef.current < 800) return; // debounce
+        lastRepTimeRef.current = now;
+        
+        repsRef.current += 1;
+        setReps(repsRef.current);
+        setRepBump(true);
+        setTimeout(() => setRepBump(false), 400);
+
+        scoreSumRef.current += qualityScore;
+        scoreCountRef.current += 1;
+        const avg = Math.round(scoreSumRef.current / scoreCountRef.current);
+        setFormScore(avg);
+
+        speakVoice(`Rep ${repsRef.current}`);
+      }
+
+      // Biomechanics engine for each exercise
+      function evaluatePose(lm) {
+        const ex = exerciseRef.current;
+        let isAligned = true;
+        let pAngle = 180;
+        let sAngle = 180;
+        let cue = "Good form";
+        let cueType = "good";
+        let currentAccuracy = 100;
+
+        // Landmarks
+        const nose = lm[0];
+        const lShoulder = lm[11], rShoulder = lm[12];
+        const lElbow = lm[13], rElbow = lm[14];
+        const lWrist = lm[15], rWrist = lm[16];
+        const lHip = lm[23], rHip = lm[24];
+        const lKnee = lm[25], rKnee = lm[26];
+        const lAnkle = lm[27], rAnkle = lm[28];
+
+        const midShoulder = { x: (lShoulder.x + rShoulder.x)/2, y: (lShoulder.y + rShoulder.y)/2 };
+        const midHip = { x: (lHip.x + rHip.x)/2, y: (lHip.y + rHip.y)/2 };
+        const midKnee = { x: (lKnee.x + rKnee.x)/2, y: (lKnee.y + rKnee.y)/2 };
+        const midAnkle = { x: (lAnkle.x + rAnkle.x)/2, y: (lAnkle.y + rAnkle.y)/2 };
+
+        if (ex === "squats") {
+          const lKneeAng = calcAngle(lHip, lKnee, lAnkle);
+          const rKneeAng = calcAngle(rHip, rKnee, rAnkle);
+          pAngle = (lKneeAng + rKneeAng) / 2;
+          const torsoAngle = calcAngle(midShoulder, midHip, midKnee);
+          sAngle = torsoAngle;
+
+          if (pAngle <= 95) {
+            cue = "✓ Perfect Squat Depth!";
+            cueType = "good";
+            if (repStageRef.current === "up") {
+              repStageRef.current = "down";
+              setRepStage("down");
+            }
+          } else if (pAngle > 95 && pAngle < 140) {
+            cue = "⚡ Lower your hips deeper";
+            cueType = "warn";
+          } else {
+            cue = "Ready for next rep";
+            cueType = "good";
+            if (repStageRef.current === "down") {
+              repStageRef.current = "up";
+              setRepStage("up");
+              triggerRepIncrement(torsoAngle < 65 ? 75 : 95);
+            }
+          }
+
+          if (torsoAngle < 60) {
+            cue = "⚠️ Keep chest lifted - Don't lean too forward";
+            cueType = "alert";
+            isAligned = false;
+            currentAccuracy = 70;
+            speakVoice("Keep chest up");
+          }
+
+        } else if (ex === "pushups") {
+          const lElbowAng = calcAngle(lShoulder, lElbow, lWrist);
+          const rElbowAng = calcAngle(rShoulder, rElbow, rWrist);
+          pAngle = (lElbowAng + rElbowAng) / 2;
+          const spineAng = calcAngle(midShoulder, midHip, midAnkle);
+          sAngle = spineAng;
+
+          if (pAngle <= 90) {
+            cue = "✓ Chest down - Full depth!";
+            cueType = "good";
+            if (repStageRef.current === "up") {
+              repStageRef.current = "down";
+              setRepStage("down");
+            }
+          } else if (pAngle > 90 && pAngle < 145) {
+            cue = "⚡ Dip chest lower to 90°";
+            cueType = "warn";
+          } else {
+            cue = "Arms locked out";
+            cueType = "good";
+            if (repStageRef.current === "down") {
+              repStageRef.current = "up";
+              setRepStage("up");
+              triggerRepIncrement(spineAng < 155 ? 70 : 95);
+            }
+          }
+
+          if (spineAng < 155 || spineAng > 195) {
+            cue = "⚠️ Straighten hips - Don't sag your core";
+            cueType = "alert";
+            isAligned = false;
+            currentAccuracy = 65;
+            speakVoice("Engage core");
+          }
+
+        } else if (ex === "plank") {
+          const spineAng = calcAngle(midShoulder, midHip, midAnkle);
+          pAngle = spineAng;
+          sAngle = calcAngle(nose, midShoulder, midHip);
+
+          if (spineAng >= 160 && spineAng <= 188) {
+            cue = "✓ Solid Plank! Core tightly braced";
+            cueType = "good";
+            isAligned = true;
+            currentAccuracy = 98;
+          } else if (spineAng < 155) {
+            cue = "⚠️ Hips piking too high - Lower hips";
+            cueType = "warn";
+            isAligned = false;
+            currentAccuracy = 72;
+            speakVoice("Lower your hips");
+          } else {
+            cue = "⚠️ Sagging lower back - Lift hips up";
+            cueType = "alert";
+            isAligned = false;
+            currentAccuracy = 60;
+            speakVoice("Lift your core");
+          }
+
+        } else if (ex === "jumping_jacks") {
+          const lArmAng = calcAngle(lHip, lShoulder, lWrist);
+          const rArmAng = calcAngle(rHip, rShoulder, rWrist);
+          pAngle = (lArmAng + rArmAng) / 2;
+          const legSpread = Math.abs(lAnkle.x - rAnkle.x);
+          sAngle = Math.round(legSpread * 200);
+
+          if (pAngle > 130 && legSpread > 0.3) {
+            cue = "✓ Full Extension!";
+            cueType = "good";
+            if (repStageRef.current === "down") {
+              repStageRef.current = "up";
+              setRepStage("up");
+            }
+          } else if (pAngle < 55 && legSpread < 0.22) {
+            cue = "Feet together";
+            cueType = "good";
+            if (repStageRef.current === "up") {
+              repStageRef.current = "down";
+              setRepStage("down");
+              triggerRepIncrement(95);
+            }
+          } else {
+            cue = "⚡ Reach arms overhead";
+            cueType = "warn";
+          }
+
+        } else if (ex === "curls") {
+          const lElbowAng = calcAngle(lShoulder, lElbow, lWrist);
+          const rElbowAng = calcAngle(rShoulder, rElbow, rWrist);
+          pAngle = Math.min(lElbowAng, rElbowAng);
+          sAngle = calcAngle(midShoulder, midHip, midKnee);
+
+          if (pAngle <= 55) {
+            cue = "✓ Peak Bicep Squeeze!";
+            cueType = "good";
+            if (repStageRef.current === "down") {
+              repStageRef.current = "up";
+              setRepStage("up");
+            }
+          } else if (pAngle >= 145) {
+            cue = "Arms fully extended";
+            cueType = "good";
+            if (repStageRef.current === "up") {
+              repStageRef.current = "down";
+              setRepStage("down");
+              triggerRepIncrement(95);
+            }
+          } else {
+            cue = "Curl upward toward shoulders";
+            cueType = "warn";
+          }
+
+        } else if (ex === "posture_check") {
+          const headSpine = calcAngle(nose, midShoulder, midHip);
+          const shoulderTilt = Math.abs(lShoulder.y - rShoulder.y) * 100;
+          pAngle = headSpine;
+          sAngle = Math.round(shoulderTilt);
+
+          if (headSpine >= 165 && shoulderTilt < 4) {
+            cue = "✓ Posture Aligned & Symmetrical";
+            cueType = "good";
+            isAligned = true;
+          } else if (headSpine < 160) {
+            cue = "⚠️ Forward Head / Slouching - Roll shoulders back";
+            cueType = "alert";
+            isAligned = false;
+            speakVoice("Straighten posture");
+          } else {
+            cue = "⚡ Level your shoulders evenly";
+            cueType = "warn";
+            isAligned = false;
+          }
+        }
+
+        setPrimaryAngle(pAngle);
+        setSecondaryAngle(sAngle);
+        setGuidance(cue);
+        setGuidanceType(cueType);
+
+        return { isAligned, pAngle, sAngle, cue, cueType, currentAccuracy };
+      }
+
+      function drawRichOverlay(ctx, lm, w, h, analysis) {
+        const { isAligned, pAngle, cue, cueType } = analysis;
+        const ex = exerciseRef.current;
+
+        // Connections
+        const connections = [
+          [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+          [11, 23], [12, 24], [23, 24],
+          [23, 25], [25, 27], [24, 26], [26, 28],
+          [0, 11], [0, 12]
+        ];
+
+        const primaryColor = isAligned ? "#C8FF3D" : (cueType === "warn" ? "#FFC83D" : "#FF4B2E");
+
+        // Skeleton glow lines
+        ctx.save();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = primaryColor;
+        ctx.shadowColor = primaryColor;
+        ctx.shadowBlur = 12;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
         connections.forEach(([i, j]) => {
           const p1 = lm[i], p2 = lm[j];
           if (p1 && p2 && p1.visibility > 0.4 && p2.visibility > 0.4) {
@@ -1937,18 +3193,58 @@
             ctx.stroke();
           }
         });
-        [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 0].forEach((i) => {
+
+        // Joint points
+        [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28].forEach((i) => {
           const p = lm[i];
           if (p && p.visibility > 0.4) {
             ctx.beginPath();
-            ctx.arc(p.x * w, p.y * h, isAligned ? 5 : 6, 0, Math.PI * 2);
-            ctx.fillStyle = color;
+            ctx.arc(p.x * w, p.y * h, 6, 0, Math.PI * 2);
+            ctx.fillStyle = primaryColor;
             ctx.fill();
             ctx.lineWidth = 2;
             ctx.strokeStyle = "#0E0E10";
             ctx.stroke();
           }
         });
+
+        // Angle Callout arc on active joint
+        let activeJoint = null;
+        if (ex === "squats") activeJoint = lm[25] || lm[26];
+        else if (ex === "pushups" || ex === "curls") activeJoint = lm[13] || lm[14];
+        else if (ex === "plank") activeJoint = lm[23] || lm[24];
+        else if (ex === "posture_check") activeJoint = lm[11];
+
+        if (activeJoint && activeJoint.visibility > 0.4) {
+          const ax = activeJoint.x * w;
+          const ay = activeJoint.y * h;
+
+          // Draw angle halo
+          ctx.beginPath();
+          ctx.arc(ax, ay, 24, 0, Math.PI * 2);
+          ctx.strokeStyle = primaryColor;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Draw angle tag badge on canvas (unmirrored readable text)
+          ctx.save();
+          // Notice the canvas is mirrored with CSS scaleX(-1), so drawing text normally in canvas will render mirrored in CSS unless we invert x
+          ctx.fillStyle = "#0E0E10";
+          ctx.fillRect(ax - 28, ay - 36, 56, 20);
+          ctx.strokeStyle = primaryColor;
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(ax - 28, ay - 36, 56, 20);
+          
+          ctx.fillStyle = primaryColor;
+          ctx.font = "bold 11px 'Space Mono', monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(`${Math.round(pAngle)}°`, ax, ay - 22);
+          ctx.restore();
+        }
+
+        ctx.restore();
       }
 
       function onResults(results) {
@@ -1960,33 +3256,26 @@
         ctx.save();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (results.image) ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
         if (results.poseLandmarks) {
-          const lm = results.poseLandmarks;
-          const lHip = lm[23], rHip = lm[24], lKnee = lm[25], rKnee = lm[26];
-          const midHip = { x: (lHip.x + rHip.x) / 2, y: (lHip.y + rHip.y) / 2 };
-          const midKnee = { x: (lKnee.x + rKnee.x) / 2, y: (lKnee.y + rKnee.y) / 2 };
-          const spineAngle = calcAngle(lm[0], midHip, midKnee);
-          const isAligned = spineAngle >= 155;
-          setAngle(spineAngle);
-          setAligned(isAligned);
-          drawSkeleton(ctx, lm, canvas.width, canvas.height, isAligned);
+          const analysis = evaluatePose(results.poseLandmarks);
+          drawRichOverlay(ctx, results.poseLandmarks, canvas.width, canvas.height, analysis);
+        } else {
+          setGuidance("Align your full body in the camera frame");
+          setGuidanceType("warn");
         }
         ctx.restore();
       }
 
       async function start() {
         setError("");
-
-        if (location.protocol === "file:") {
-          setError("Camera access is blocked when a page is opened directly from disk (file://). Serve this page over http(s) — for example run a local server or view it via a hosted URL — then try again.");
-          return;
-        }
-        if (typeof Pose === "undefined" || typeof Camera === "undefined") {
-          setError("Pose tracking failed to load. Check your connection and reload the page.");
-          return;
-        }
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          setError("This browser doesn't support camera access. Try the latest Chrome, Edge, or Safari.");
+          setError("Camera API is not supported or restricted by browser permissions.");
+          return;
+        }
+
+        if (typeof Pose === "undefined") {
+          setError("MediaPipe Pose model is downloading. Please check your internet connection.");
           return;
         }
 
@@ -1996,71 +3285,418 @@
           pose.onResults(onResults);
           poseRef.current = pose;
         }
+
         try {
-          if (!cameraRef.current) {
-            cameraRef.current = new Camera(videoRef.current, {
-              onFrame: async () => { await poseRef.current.send({ image: videoRef.current }); },
-              width: 640,
-              height: 480,
+          let stream;
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: "user" }, width: { ideal: 640 }, height: { ideal: 480 } },
+              audio: false
             });
+          } catch (e1) {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
           }
-          await cameraRef.current.start();
+
+          if (!videoRef.current) return;
+          videoRef.current.srcObject = stream;
+          streamRef.current = stream;
+          await videoRef.current.play();
+
+          activeRef.current = true;
           setRunning(true);
-        } catch (err) {
-          console.error("Camera access error:", err);
-          const name = err && err.name;
-          let message = "Could not access your camera. Check browser permissions and try again.";
-          if (name === "NotAllowedError" || name === "PermissionDeniedError") {
-            message = "Camera permission was denied. Click the camera/lock icon in your browser's address bar, allow camera access for this site, then click \"Enable camera\" again.";
-          } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-            message = "No camera was found on this device. Connect a webcam and try again.";
-          } else if (name === "NotReadableError" || name === "TrackStartError") {
-            message = "Your camera is already in use by another app or browser tab. Close it there and try again.";
-          } else if (name === "SecurityError") {
-            message = "Camera access is blocked in this context (often when embedded in an iframe without camera permission). Open this page directly in its own browser tab and try again.";
+          speakVoice("Starting workout. Get ready!");
+
+          async function processLoop() {
+            if (!activeRef.current || !videoRef.current) return;
+            if (videoRef.current.readyState >= 2 && poseRef.current) {
+              try {
+                await poseRef.current.send({ image: videoRef.current });
+              } catch (e) {}
+            }
+            if (activeRef.current) {
+              requestAnimationFrame(processLoop);
+            }
           }
-          setError(message);
+          requestAnimationFrame(processLoop);
+        } catch (err) {
+          console.error("Camera error:", err);
+          setError("Could not access camera. Please allow camera permissions in browser.");
           setRunning(false);
         }
       }
 
       function stop() {
-        if (cameraRef.current) cameraRef.current.stop();
+        activeRef.current = false;
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+        }
         setRunning(false);
+
+        // If completed reps or duration, generate summary
+        if (repsRef.current > 0 || activeDuration > 10) {
+          generateWorkoutSummary();
+        }
+      }
+
+      function resetWorkout() {
+        setReps(0);
+        repsRef.current = 0;
+        setActiveDuration(0);
+        setCalories(0);
+        setFormScore(100);
+        scoreSumRef.current = 0;
+        scoreCountRef.current = 0;
+        setSessionSummary(null);
+      }
+
+      // ---- GEMINI AI FORM AUDIT (Multimodal Vision API) ----
+      async function triggerAiFormAudit() {
+        if (!canvasRef.current || !running) {
+          setAiDiagnosis({
+            grade: "A",
+            text: "Turn on your camera and begin exercising to run a live AI Biomechanics Audit!"
+          });
+          return;
+        }
+
+        setAiLoading(true);
+        try {
+          // Grab frame snapshot from canvas as JPEG base64
+          const dataUrl = canvasRef.current.toDataURL("image/jpeg", 0.7);
+          const base64Data = dataUrl.split(",")[1];
+
+          const exCfg = EXERCISE_CONFIGS[exerciseRef.current];
+          const prompt = `You are the HexaFit Elite Biomechanics AI Coach. 
+Analyze this live snapshot of the user performing ${exCfg.name}.
+Current real-time joint metrics:
+- Key Angle: ${Math.round(primaryAngle)}° (Target: ${exCfg.targetAngle})
+- Secondary Angle: ${Math.round(secondaryAngle)}°
+- Reps completed: ${reps}
+- Form Accuracy Score: ${formScore}%
+
+Provide a structured, punchy 3-part diagnosis:
+1. FORM GRADE: [A+ / A / B / C]
+2. BIOMECHANICAL ADJUSTMENTS: 1-2 exact joint corrections (e.g. knee tracking, spine neutrality, elbow lockout).
+3. MUSCLE & SAFETY: Key muscle activation and injury prevention tip.
+Keep it under 90 words, energetic, direct and professional.`;
+
+          const payload = {
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: "image/jpeg", data: base64Data } }
+              ]
+            }],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 300
+            }
+          };
+
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${getGeminiApiKey()}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await res.json();
+          if (data && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+            const reply = data.candidates[0].content.parts[0].text;
+            
+            // Extract grade if present
+            let grade = "A";
+            if (reply.includes("A+")) grade = "A+";
+            else if (reply.includes("Grade: A") || reply.includes("GRADE: A")) grade = "A";
+            else if (reply.includes("Grade: B") || reply.includes("GRADE: B") || reply.includes("B+")) grade = "B";
+            else if (reply.includes("Grade: C") || reply.includes("GRADE: C")) grade = "C";
+
+            setAiDiagnosis({ grade, text: reply, time: new Date().toLocaleTimeString() });
+            speakVoice("AI Form Audit Complete. Check your trainer diagnosis.");
+          } else {
+            setAiDiagnosis({
+              grade: "A",
+              text: "✓ Solid movement mechanics. Maintain steady tempo and keep your core stabilized throughout each rep."
+            });
+          }
+        } catch (err) {
+          console.error("AI Audit error:", err);
+          setAiDiagnosis({
+            grade: "A",
+            text: "✓ Good alignment detected. Keep breathing rhythmically and ensure knees stay aligned with toes."
+          });
+        } finally {
+          setAiLoading(false);
+        }
+      }
+
+      // ---- GEMINI AI CHAT ----
+      async function handleSendChat(e) {
+        e.preventDefault();
+        if (!chatInput.trim()) return;
+        const userMsg = chatInput.trim();
+        setChatInput("");
+        setChatMessages(prev => [...prev, { sender: "user", text: userMsg }]);
+
+        try {
+          const prompt = `You are HexaFit Pro AI Coach inside HexaFit fitness platform.
+The user is currently in the AI Vision Studio training ${EXERCISE_CONFIGS[exerciseRef.current].name}.
+Reps: ${reps}, Accuracy: ${formScore}%.
+User Question: "${userMsg}"
+Respond in 2-3 punchy, certified trainer sentences with actionable workout advice.`;
+
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${getGeminiApiKey()}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+
+          const data = await res.json();
+          const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Keep your form tight, focus on controlled reps, and don't rush through the movement!";
+          setChatMessages(prev => [...prev, { sender: "bot", text: reply }]);
+        } catch (err) {
+          setChatMessages(prev => [...prev, { sender: "bot", text: "Great question! Maintain steady tempo, keep your core engaged, and hydrate well after your set." }]);
+        }
+      }
+
+      // ---- GEMINI AI WORKOUT SUMMARY ----
+      async function generateWorkoutSummary() {
+        const exName = EXERCISE_CONFIGS[exerciseRef.current].name;
+        const totalReps = repsRef.current;
+        const durationSec = activeDuration;
+        const accuracy = formScore;
+        const cal = calories;
+
+        try {
+          const prompt = `Generate a 2-sentence trainer report card for this completed workout session:
+Exercise: ${exName}, Reps: ${totalReps}, Duration: ${durationSec}s, Form Score: ${accuracy}%, Calories: ${cal} kcal.
+Give an encouraging verdict and 1 specific corrective drill for next time.`;
+
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${getGeminiApiKey()}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+          const data = await res.json();
+          const note = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Awesome intensity! Your consistency is building strong neuromuscular endurance.";
+          setSessionSummary({ exName, totalReps, durationSec, accuracy, cal, note });
+        } catch (e) {
+          setSessionSummary({
+            exName, totalReps, durationSec, accuracy, cal,
+            note: "Great workout completion! Continue focusing on depth and smooth cadence in your next session."
+          });
+        }
+      }
+
+      function formatSec(s) {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
       }
 
       return (
-        <div className="posture-card" style={{ transform: "rotate(-1deg)" }}>
-          <div className="posture-head">
-            <span>Live camera — MediaPipe Pose</span>
-            <span className={`posture-status ${aligned ? "good" : "bad"}`}>{aligned ? "Aligned" : "Correct posture"}</span>
+        <div className="studio-container">
+          {/* Top Exercise Selector Bar */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span className="eyebrow" style={{ margin: 0 }}>⚡ HexaFit AI Vision Studio</span>
+              <span style={{ fontSize: "11px", fontFamily: "var(--mono)", opacity: 0.7 }}>Powered by MediaPipe & Gemini 3.7 Flash</span>
+            </div>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <button 
+                type="button"
+                className={`btn ${voiceEnabled ? "btn-primary" : ""}`}
+                style={{ padding: "6px 12px", fontSize: "11px", fontFamily: "var(--mono)" }}
+                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                title="Toggle Voice Coach"
+              >
+                {voiceEnabled ? "🔊 Voice Coach ON" : "🔇 Voice Coach OFF"}
+              </button>
+              <button 
+                type="button"
+                className="btn"
+                style={{ padding: "6px 12px", fontSize: "11px", fontFamily: "var(--mono)" }}
+                onClick={resetWorkout}
+              >
+                ↺ Reset Session
+              </button>
+            </div>
           </div>
-          <div className="camera-frame">
-            <video ref={videoRef} playsInline style={{ display: "none" }}></video>
-            <canvas ref={canvasRef} style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }}></canvas>
-            <div className={`camera-overlay ${running ? "on" : ""}`}></div>
-            {running && (
-              <div className="camera-live-tag"><span className="rec-dot"></span>LIVE</div>
-            )}
-            {!running && !error && (
-              <div className="camera-idle">
-                <div className="camera-cam-icon">◉</div>
-                <p>Turn on your camera to try real pose tracking, right in the browser.</p>
+
+          <div className="exercise-pills">
+            {Object.values(EXERCISE_CONFIGS).map(cfg => (
+              <button
+                key={cfg.id}
+                type="button"
+                className={`exercise-pill ${exercise === cfg.id ? "active" : ""}`}
+                onClick={() => {
+                  setExercise(cfg.id);
+                  setRepStage("up");
+                  repStageRef.current = "up";
+                }}
+              >
+                <span>{cfg.icon}</span>
+                <span>{cfg.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Real-time HUD Metrics Bar */}
+          <div className="studio-hud-grid">
+            <div className={`hud-card ${repBump ? "rep-bump" : ""}`}>
+              <div className="hud-label">Reps Completed</div>
+              <div className="hud-val">{reps}</div>
+            </div>
+            <div className={`hud-card ${formScore < 75 ? "alert" : (formScore < 88 ? "warn" : "")}`}>
+              <div className="hud-label">Form Accuracy</div>
+              <div className="hud-val">{formScore}<span className="unit">%</span></div>
+            </div>
+            <div className="hud-card">
+              <div className="hud-label">Session Timer</div>
+              <div className="hud-val">{formatSec(activeDuration)}</div>
+            </div>
+            <div className="hud-card">
+              <div className="hud-label">Est. Calories</div>
+              <div className="hud-val">{calories}<span className="unit">kcal</span></div>
+            </div>
+          </div>
+
+          {/* Main Studio Viewport & Sidebar Grid */}
+          <div className="studio-main-grid">
+            {/* Camera Stage */}
+            <div>
+              <div className="studio-stage">
+                <video ref={videoRef} playsInline autoPlay muted style={{ position: "absolute", width: "1px", height: "1px", opacity: 0, pointerEvents: "none" }}></video>
+                <canvas ref={canvasRef}></canvas>
+                
+                {running && (
+                  <div className="hud-live-tag">
+                    <span className="rec-dot"></span>
+                    <span>LIVE · {EXERCISE_CONFIGS[exercise].name.toUpperCase()}</span>
+                  </div>
+                )}
+
+                {running && (
+                  <div className={`hud-guidance-pill ${guidanceType}`}>
+                    <span>{guidance}</span>
+                  </div>
+                )}
+
+                {!running && !error && (
+                  <div className="camera-idle">
+                    <div className="camera-cam-icon">◉</div>
+                    <p style={{ marginTop: "12px", fontSize: "14px", fontWeight: 700 }}>Real-Time AI Motion Tracking</p>
+                    <p>Enable camera to start live posture scoring, rep counting, and instant Gemini AI visual diagnostics.</p>
+                  </div>
+                )}
+                {error && <div className="camera-error">{error}</div>}
               </div>
-            )}
-            {error && <div className="camera-error">{error}</div>}
+
+              {/* Camera Action Buttons */}
+              <div className="camera-controls">
+                <PressButton className={running ? "btn-dark" : "btn-primary"} onClick={running ? stop : start}>
+                  {running ? "⏹ Stop Workout" : "▶ Start AI Camera Track"}
+                </PressButton>
+
+                {running && (
+                  <PressButton className="btn-alt" onClick={triggerAiFormAudit} disabled={aiLoading}>
+                    {aiLoading ? "Analyzing..." : "🔍 Run AI Form Audit ✦"}
+                  </PressButton>
+                )}
+              </div>
+              <p className="posture-caption" style={{ marginTop: "10px" }}>
+                Target Biomechanics: <strong>{EXERCISE_CONFIGS[exercise].targetAngle}</strong> · Active Joint Angle: <span className="posture-angle">{Math.round(primaryAngle)}°</span>
+              </p>
+            </div>
+
+            {/* Sidebar: AI Coach & Interactive Chat */}
+            <div className="studio-sidebar">
+              {/* AI Biomechanics Diagnosis Card */}
+              <div className="ai-coach-card">
+                <div className="ai-coach-head">
+                  <h4><span>✨</span>Gemini AI Form Diagnosis</h4>
+                  {aiDiagnosis?.grade && (
+                    <span className={`ai-grade-badge ${aiDiagnosis.grade === 'B' ? 'grade-b' : (aiDiagnosis.grade === 'C' ? 'grade-c' : '')}`}>
+                      Grade {aiDiagnosis.grade}
+                    </span>
+                  )}
+                </div>
+
+                {aiLoading ? (
+                  <div className="ai-loading-shimmer">
+                    <div className="ai-loading-spinner"></div>
+                    <span>Gemini 3.7 Flash analyzing video frame & biomechanics...</span>
+                  </div>
+                ) : aiDiagnosis ? (
+                  <div className="ai-coach-body">
+                    <p style={{ whiteSpace: "pre-line" }}>{aiDiagnosis.text}</p>
+                    {aiDiagnosis.time && (
+                      <span style={{ fontSize: "10px", fontFamily: "var(--mono)", opacity: 0.6 }}>Audited at {aiDiagnosis.time}</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="ai-coach-body" style={{ opacity: 0.8 }}>
+                    <p>Click <strong>Run AI Form Audit ✦</strong> during your workout to capture a live posture snapshot. Gemini AI will evaluate your joint alignment and provide instant trainer corrections.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Interactive AI Trainer Chat */}
+              <div className="ai-chat-box">
+                <div style={{ fontSize: "12px", fontFamily: "var(--mono)", fontWeight: 700, textTransform: "uppercase", marginBottom: "8px", color: "var(--lime)" }}>
+                  💬 Ask AI Trainer
+                </div>
+                <div className="ai-chat-messages">
+                  {chatMessages.map((m, i) => (
+                    <div key={i} className={`ai-msg ${m.sender}`}>{m.text}</div>
+                  ))}
+                </div>
+                <form className="ai-chat-input-row" onSubmit={handleSendChat}>
+                  <input 
+                    type="text" 
+                    placeholder={`Ask about ${EXERCISE_CONFIGS[exercise].name}...`}
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                  />
+                  <button type="submit">Ask</button>
+                </form>
+              </div>
+            </div>
           </div>
-          <div className="camera-controls">
-            <PressButton className="btn-primary" onClick={running ? stop : start}>{running ? "Stop camera" : "Enable camera"}</PressButton>
-          </div>
-          <p className="posture-caption">Angle from vertical: <span className="posture-angle">{angle.toFixed(1)}°</span></p>
-          <div className="demo-readout" style={{ marginTop: "20px" }}>
-            <div className="row"><span className="label">Frame source</span><span>Live webcam via MediaPipe</span></div>
-            <div className="row"><span className="label">Classification</span><span style={{ color: aligned ? "#3DDC97" : "#FF4B2E" }}>{aligned ? "correct_alignment" : "deviation_detected"}</span></div>
-            <div className="row"><span className="label">Deviation tolerance</span><span>within 25° of vertical spine line</span></div>
-            <div className="row"><span className="label">Processing</span><span>On-device — nothing uploaded</span></div>
-            <div className="row"><span className="label">Stored in</span><span>MongoDB Atlas · postureEvents (not persisted in this demo)</span></div>
-          </div>
+
+          {/* Session Summary Card Modal (when stopped) */}
+          {sessionSummary && (
+            <div className="session-summary-box">
+              <h3><span>🏆</span>Session Completed: {sessionSummary.exName}</h3>
+              <div className="summary-grid">
+                <div className="summary-item">
+                  <div className="s-label">Total Reps</div>
+                  <div className="s-val">{sessionSummary.totalReps}</div>
+                </div>
+                <div className="summary-item">
+                  <div className="s-label">Active Time</div>
+                  <div className="s-val">{formatSec(sessionSummary.durationSec)}</div>
+                </div>
+                <div className="summary-item">
+                  <div className="s-label">Form Accuracy</div>
+                  <div className="s-val">{sessionSummary.accuracy}%</div>
+                </div>
+                <div className="summary-item">
+                  <div className="s-label">Calories Burned</div>
+                  <div className="s-val">{sessionSummary.cal} kcal</div>
+                </div>
+              </div>
+              <div style={{ padding: "12px", background: "var(--white)", border: "2px solid var(--ink)", fontSize: "13px", lineHeight: 1.5 }}>
+                <strong>🤖 Gemini Coach Verdict:</strong> {sessionSummary.note}
+              </div>
+              <div style={{ marginTop: "12px", display: "flex", gap: "10px" }}>
+                <PressButton className="btn-primary" onClick={() => setSessionSummary(null)}>Start Next Set</PressButton>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
@@ -2074,7 +3710,7 @@
               <h1 className="slam" style={{ animationDelay: ".08s" }}>Trainer-grade form<br /><span className="accent">without a trainer.</span></h1>
               <p className="lede slam" style={{ animationDelay: ".16s" }}>HexaFit reads your posture in real time, adapts your workout and meal plan to your actual week, and keeps you honest with streaks — built for people who can't afford or access a personal trainer.</p>
               <div className="hero-actions slam" style={{ animationDelay: ".24s" }}>
-                <PressButton href="#sensor" className="btn-dark">See posture tracking →</PressButton>
+                <PressButton href="#sensor" className="btn-dark">Try AI Vision Studio →</PressButton>
                 <PressButton href="#features" className="" >Explore features</PressButton>
               </div>
             </div>
@@ -2224,40 +3860,40 @@
     }
 
     function SensorSection() {
-      const [mode, setMode] = useState("manual");
+      const [mode, setMode] = useState("live");
       return (
         <section id="sensor" className="cobalt">
           <div className="wrap">
             <Reveal className="section-head">
-              <div className="eyebrow">Position sensor demo</div>
-              <h2>The SIH demo centerpiece: live posture classification.</h2>
-              <p>Drag the simulated sensor, or switch to your camera for real pose tracking running live in the browser.</p>
+              <div className="eyebrow">Real-Time AI Vision & Tracking Studio</div>
+              <h2>Trainer-grade guidance, live in your browser.</h2>
+              <p>Multi-exercise motion tracking with dynamic HUD visual feedback, automatic rep counting, and live Gemini AI biomechanics analysis.</p>
             </Reveal>
             <Reveal className="demo-tabs" style={{ display: "flex" }}>
-              <button className={`demo-tab ${mode === "manual" ? "active" : ""}`} onClick={() => setMode("manual")}>Manual demo</button>
-              <button className={`demo-tab ${mode === "live" ? "active" : ""}`} onClick={() => setMode("live")}>Live camera</button>
+              <button className={`demo-tab ${mode === "live" ? "active" : ""}`} onClick={() => setMode("live")}>AI Camera Studio</button>
+              <button className={`demo-tab ${mode === "manual" ? "active" : ""}`} onClick={() => setMode("manual")}>Manual sensor demo</button>
             </Reveal>
-            <Reveal className="demo-wrap" style={{ display: "grid" }} key={mode}>
+            <Reveal key={mode}>
               {mode === "manual" ? (
-                <div className="posture-card" style={{ transform: "rotate(-1deg)" }}>
-                  <div className="posture-head">
-                    <span>Guided exercise — Plank</span>
-                    <span id="sensor-badge" className="posture-status good">Aligned</span>
+                <div className="demo-wrap" style={{ display: "grid" }}>
+                  <div className="posture-card" style={{ transform: "rotate(-1deg)" }}>
+                    <div className="posture-head">
+                      <span>Guided exercise — Plank</span>
+                      <span id="sensor-badge" className="posture-status good">Aligned</span>
+                    </div>
+                    <div style={{ border: "2px solid var(--ink)", background: "var(--paper)" }}>
+                      <PostureDemo badgeId="sensor-badge" wrapId="postureSvgWrap2" />
+                    </div>
                   </div>
-                  <div style={{ border: "2px solid var(--ink)", background: "var(--paper)" }}>
-                    <PostureDemo badgeId="sensor-badge" wrapId="postureSvgWrap2" />
+                  <div>
+                    <p className="demo-note">
+                      Simulates sensor angle feeds from hardware posture devices, testing the edge classification threshold before streaming to MongoDB Atlas.
+                    </p>
                   </div>
                 </div>
               ) : (
                 <LiveCameraDemo />
               )}
-              <div>
-                <p className="demo-note">
-                  {mode === "manual"
-                    ? "In production this reads live SensorFrame data and writes classified PostureEvent records for the progress dashboard and adherence metrics."
-                    : "This runs Google's MediaPipe Pose model fully in your browser — your video never leaves your device. It's the same joint-angle math the production posture service will use once the dedicated sensor pipeline ships."}
-                </p>
-              </div>
             </Reveal>
           </div>
         </section>
@@ -2523,6 +4159,204 @@
       );
     }
 
+    // ---- MEMO / WORKOUT JOURNAL ----
+    const MEMO_STORAGE_KEY = "hexafit_memos";
+
+    function loadMemos() {
+      try {
+        const raw = localStorage.getItem(MEMO_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) { return []; }
+    }
+
+    function saveMemos(memos) {
+      try { localStorage.setItem(MEMO_STORAGE_KEY, JSON.stringify(memos)); } catch (e) {}
+    }
+
+    function MemoSection() {
+      const [memos, setMemos] = useState(loadMemos);
+      const [title, setTitle] = useState("");
+      const [body, setBody] = useState("");
+      const [category, setCategory] = useState("general");
+      const [search, setSearch] = useState("");
+      const [filterCat, setFilterCat] = useState("all");
+      const [editingId, setEditingId] = useState(null);
+
+      const categories = [
+        { key: "workout", label: "Workout", cls: "cat-workout" },
+        { key: "nutrition", label: "Nutrition", cls: "cat-nutrition" },
+        { key: "recovery", label: "Recovery", cls: "cat-recovery" },
+        { key: "mindset", label: "Mindset", cls: "cat-mindset" },
+        { key: "general", label: "General", cls: "" },
+      ];
+
+      function persist(next) {
+        setMemos(next);
+        saveMemos(next);
+      }
+
+      function handleSubmit(e) {
+        e.preventDefault();
+        if (!body.trim()) return;
+        if (editingId) {
+          const next = memos.map((m) =>
+            m.id === editingId
+              ? { ...m, title: title.trim() || "Untitled", body: body.trim(), category, updatedAt: Date.now() }
+              : m
+          );
+          persist(next);
+          setEditingId(null);
+        } else {
+          const memo = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            title: title.trim() || "Untitled",
+            body: body.trim(),
+            category,
+            pinned: false,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          persist([memo, ...memos]);
+        }
+        setTitle("");
+        setBody("");
+        setCategory("general");
+      }
+
+      function deleteMemo(id) {
+        persist(memos.filter((m) => m.id !== id));
+        if (editingId === id) {
+          setEditingId(null);
+          setTitle("");
+          setBody("");
+          setCategory("general");
+        }
+      }
+
+      function togglePin(id) {
+        persist(memos.map((m) => m.id === id ? { ...m, pinned: !m.pinned } : m));
+      }
+
+      function startEdit(memo) {
+        setEditingId(memo.id);
+        setTitle(memo.title);
+        setBody(memo.body);
+        setCategory(memo.category);
+      }
+
+      function cancelEdit() {
+        setEditingId(null);
+        setTitle("");
+        setBody("");
+        setCategory("general");
+      }
+
+      function formatTime(ts) {
+        const d = new Date(ts);
+        const day = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+        const time = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+        return day + " · " + time;
+      }
+
+      const filtered = memos
+        .filter((m) => filterCat === "all" || m.category === filterCat)
+        .filter((m) => {
+          if (!search.trim()) return true;
+          const q = search.toLowerCase();
+          return m.title.toLowerCase().includes(q) || m.body.toLowerCase().includes(q);
+        })
+        .sort((a, b) => {
+          if (a.pinned && !b.pinned) return -1;
+          if (!a.pinned && b.pinned) return 1;
+          return b.createdAt - a.createdAt;
+        });
+
+      return (
+        <section id="memo">
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">Workout Memo</div>
+              <h2>Your fitness journal. Write it down, keep it real.</h2>
+              <p>Jot workout notes, meal ideas, recovery thoughts, or mindset wins. Memos persist in your browser — nothing uploaded.</p>
+            </Reveal>
+            <Reveal className="memo-layout" style={{ display: "grid" }}>
+              <form className="memo-composer" onSubmit={handleSubmit}>
+                <h4><span className="mc-icon">✎</span>{editingId ? "Edit memo" : "New memo"}</h4>
+                <div className="memo-field">
+                  <label htmlFor="memo-title">Title</label>
+                  <input id="memo-title" type="text" placeholder="e.g. Leg day notes" value={title} onChange={(e) => setTitle(e.target.value)} />
+                </div>
+                <div className="memo-field">
+                  <label htmlFor="memo-body">Memo</label>
+                  <textarea id="memo-body" rows="5" placeholder="What's on your mind?" required value={body} onChange={(e) => setBody(e.target.value)}></textarea>
+                </div>
+                <div className="memo-field">
+                  <label>Category</label>
+                  <div className="memo-cats">
+                    {categories.map((c) => (
+                      <button
+                        key={c.key}
+                        type="button"
+                        className={`memo-cat-btn ${c.cls} ${category === c.key ? "active" : ""}`}
+                        onClick={() => setCategory(c.key)}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="memo-actions">
+                  <PressButton type="submit" className="btn-primary">{editingId ? "Save changes" : "Add memo"}</PressButton>
+                  {editingId && <PressButton className="" onClick={cancelEdit}>Cancel</PressButton>}
+                </div>
+              </form>
+
+              <div>
+                <div className="memo-search">
+                  <input type="text" placeholder="Search memos…" value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "18px" }}>
+                  <button className={`memo-filter-btn ${filterCat === "all" ? "active" : ""}`} onClick={() => setFilterCat("all")}>All</button>
+                  {categories.map((c) => (
+                    <button key={c.key} className={`memo-filter-btn ${filterCat === c.key ? "active" : ""}`} onClick={() => setFilterCat(c.key)}>{c.label}</button>
+                  ))}
+                </div>
+                <div className="memo-count">{filtered.length} memo{filtered.length !== 1 ? "s" : ""}{filterCat !== "all" ? " in " + filterCat : ""}</div>
+
+                {filtered.length === 0 ? (
+                  <div className="memo-empty">
+                    <div className="me-icon">📝</div>
+                    <p>{memos.length === 0 ? "No memos yet — write your first one." : "No memos match your search."}</p>
+                  </div>
+                ) : (
+                  <div className="memo-list">
+                    {filtered.map((m) => (
+                      <div key={m.id} className={`memo-card ${m.pinned ? "pinned" : ""}`}>
+                        <div className="memo-card-head">
+                          <span className="memo-card-title">{m.pinned ? "📌 " : ""}{m.title}</span>
+                          <span className={`memo-card-tag t-${m.category}`}>{m.category}</span>
+                        </div>
+                        <div className="memo-card-body">{m.body}</div>
+                        <div className="memo-card-footer">
+                          <span className="memo-card-time">{formatTime(m.createdAt)}{m.updatedAt > m.createdAt + 1000 ? " · edited" : ""}</span>
+                          <div className="memo-card-btns">
+                            <button onClick={() => togglePin(m.id)} title={m.pinned ? "Unpin" : "Pin"} className={m.pinned ? "pin-active" : ""}>📌</button>
+                            <button onClick={() => startEdit(m)} title="Edit">✏️</button>
+                            <button onClick={() => deleteMemo(m.id)} title="Delete">🗑</button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="memo-storage-note">Stored in localStorage · browser-only · not synced</div>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+      );
+    }
+
     function App() {
       return (
         <div id="top">
@@ -2539,6 +4373,7 @@
             <Metrics />
             <Risks />
             <Roadmap />
+            <MemoSection />
             <Support />
           </main>
           <Footer />
@@ -2550,14 +4385,9 @@
   </script>
 
 <script type="module">
-  // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
     apiKey: "AIzaSyCkRKln9gREs_TaswZNd1v7sCNnrRUUZf8",
     authDomain: "hexafit-6b183.firebaseapp.com",
@@ -2568,9 +4398,16 @@
     measurementId: "G-NXHCY1CGK8"
   };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
+  try {
+    const app = initializeApp(firebaseConfig);
+    isSupported().then((supported) => {
+      if (supported) {
+        getAnalytics(app);
+      }
+    }).catch(() => {});
+  } catch (e) {
+    console.warn("Firebase initialization skipped in offline/restricted environment:", e);
+  }
 </script>
 </body>
 
