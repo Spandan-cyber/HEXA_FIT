@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HexaFit — Trainer-grade guidance, no trainer required</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --ink:#0E0E10;
+    --paper:#F5F4EF;
+    --white:#FFFFFF;
+    --lime:#C8FF3D;
+    --pink:#FF3D8F;
+    --cobalt:#3D5AFF;
+    --alert:#FF4B2E;
+    --border: 4px solid var(--ink);
+    --shadow: 7px 7px 0 var(--ink);
+    --shadow-sm: 4px 4px 0 var(--ink);
+    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --snap: cubic-bezier(0.7, 0, 0.2, 1.6);
+    --display: 'Anton', system-ui, sans-serif;
+    --head: 'Space Grotesk', system-ui, sans-serif;
+    --mono: 'Space Mono', monospace;
+    --max: 1180px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--head);
+    font-weight:500;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
+  }
+  a{color:inherit; text-decoration:none;}
+  img,svg{display:block; max-width:100%;}
+  .wrap{max-width:var(--max); margin:0 auto; padding:0 24px;}
+  h1,h2,h3,h4{font-family:var(--display); font-weight:400; letter-spacing:0.002em; text-transform:uppercase; line-height:0.92;}
+  .eyebrow{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.04em; text-transform:uppercase;
+    display:inline-flex; align-items:center; gap:8px; margin-bottom:18px; font-weight:700;
+    background:var(--ink); color:var(--lime); padding:6px 12px; transform:rotate(-1.5deg);
+  }
+  .btn{
+    font-family:var(--head); font-weight:700; font-size:15px; padding:14px 26px;
+    border:var(--border); cursor:pointer; display:inline-flex; align-items:center; gap:8px;
+    box-shadow:var(--shadow-sm); background:var(--white); color:var(--ink);
+    transition:transform .15s var(--snap), box-shadow .15s var(--snap);
+  }
+  .btn:hover{ transform:translate(-3px,-3px); box-shadow:7px 7px 0 var(--ink); }
+  .btn.pressed{ transform:translate(2px,2px) !important; box-shadow:1px 1px 0 var(--ink) !important; }
+  .btn-primary{ background:var(--lime); }
+  .btn-alt{ background:var(--pink); color:var(--white); }
+  .btn-dark{ background:var(--ink); color:var(--white); }
+  :focus-visible{ outline:3px solid var(--cobalt); outline-offset:3px; }
+
+  /* NAV */
+  header.nav{ position:sticky; top:0; z-index:100; background:var(--paper); border-bottom:var(--border); }
+  .nav-inner{ display:flex; align-items:center; justify-content:space-between; padding:16px 24px; max-width:var(--max); margin:0 auto; flex-wrap:wrap; row-gap:10px; }
+  .brand{ display:flex; align-items:center; gap:10px; font-family:var(--display); font-weight:400; font-size:24px; text-transform:uppercase; }
+  .brand-mark{ width:30px; height:30px; background:var(--lime); border:3px solid var(--ink); transition:transform .4s var(--spring); }
+  .brand:hover .brand-mark{ transform:rotate(180deg); }
+  .nav-links{ display:flex; gap:4px; list-style:none; }
+  .nav-links a{ font-family:var(--mono); font-size:12px; text-transform:uppercase; font-weight:700; padding:10px 14px; border:2px solid transparent; transition:transform .15s var(--snap); display:inline-block; }
+  .nav-links a:hover{ border:2px solid var(--ink); background:var(--white); transform:translateY(-2px); }
+  .nav-cta{ display:flex; align-items:center; gap:12px; }
+  .hamburger{ display:none; flex-direction:column; gap:5px; background:var(--ink); border:var(--border); cursor:pointer; padding:10px; }
+  .hamburger span{ width:20px; height:3px; background:var(--lime); display:block; transition:transform .3s var(--spring), opacity .2s ease; }
+  .hamburger.open span:nth-child(1){ transform:translateY(8px) rotate(45deg); }
+  .hamburger.open span:nth-child(2){ opacity:0; }
+  .hamburger.open span:nth-child(3){ transform:translateY(-8px) rotate(-45deg); }
+  .mobile-panel{ max-height:0; overflow:hidden; transition:max-height .35s var(--snap); border-top:0 solid var(--ink); }
+  .mobile-panel.open{ max-height:400px; border-top:var(--border); background:var(--white); }
+
+  @media (max-width: 900px){
+    .nav-links{ display:none; }
+    .nav-cta .btn-dark{ display:none; }
+    .hamburger{ display:flex; }
+    .mobile-panel a{ display:block; padding:16px 24px; font-family:var(--mono); font-size:13px; text-transform:uppercase; font-weight:700; border-bottom:2px solid var(--ink); }
+  }
+
+  /* GOOGLE AUTH */
+  .auth-widget{ display:flex; align-items:center; }
+  .gsi-btn-wrap{ line-height:0; }
+  .gsi-btn-wrap iframe{ border:3px solid var(--ink) !important; box-shadow:var(--shadow-sm); }
+  .auth-fallback{ border:3px solid var(--ink); background:var(--white); padding:9px 16px; font-family:var(--mono); font-size:12px; font-weight:700; text-transform:uppercase; display:flex; align-items:center; gap:8px; cursor:pointer; box-shadow:var(--shadow-sm); transition:transform .15s var(--snap); }
+  .auth-fallback:hover{ transform:translate(-2px,-2px); }
+  .auth-user{ display:flex; align-items:center; gap:10px; border:3px solid var(--ink); background:var(--lime); padding:6px 14px 6px 6px; box-shadow:var(--shadow-sm); }
+  .auth-user img{ width:30px; height:30px; border:2px solid var(--ink); object-fit:cover; }
+  .auth-user .who{ display:flex; flex-direction:column; line-height:1.15; }
+  .auth-user .who strong{ font-family:var(--head); font-size:12.5px; }
+  .auth-user .who span{ font-family:var(--mono); font-size:10px; opacity:.75; }
+  .auth-user button{ border:2px solid var(--ink); background:var(--white); font-family:var(--mono); font-size:10px; font-weight:700; text-transform:uppercase; padding:4px 8px; cursor:pointer; }
+  .auth-note{ font-family:var(--mono); font-size:10px; text-transform:uppercase; opacity:.6; margin-top:6px; }
+  @media (max-width:900px){ .auth-widget{ padding:16px 24px; border-bottom:2px solid var(--ink); } }
+
+  /* MARQUEE */
+  .marquee{ background:var(--ink); border-bottom:var(--border); overflow:hidden; padding:10px 0; }
+  .marquee-track{ display:flex; width:max-content; animation:marquee 16s linear infinite; }
+  .marquee-track span{ white-space:nowrap; font-family:var(--mono); font-weight:700; font-size:13px; text-transform:uppercase; color:var(--lime); padding:0 20px; letter-spacing:.05em; }
+  .marquee-track span:nth-child(even){ color:var(--pink); }
+  @keyframes marquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+  /* HERO */
+  .hero{ position:relative; padding:56px 0 0; overflow:hidden; background:var(--lime); border-bottom:var(--border); }
+  .hero-grid{ display:grid; grid-template-columns:1.1fr 0.9fr; gap:40px; align-items:end; }
+  @media (max-width: 900px){ .hero-grid{ grid-template-columns:1fr; gap:32px; } }
+  .hero h1{ font-size:clamp(46px, 8vw, 96px); margin-bottom:24px; }
+  .hero h1 .accent{ background:var(--ink); color:var(--white); padding:0 10px; display:inline-block; }
+  .hero p.lede{ font-family:var(--head); font-weight:600; font-size:18px; max-width:44ch; margin-bottom:30px; }
+  .hero-actions{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:36px; }
+  .hero-stats{ display:flex; gap:0; flex-wrap:wrap; font-family:var(--mono); border-top:3px solid var(--ink); }
+  .hero-stats div{ font-size:11px; text-transform:uppercase; font-weight:700; padding:14px 22px 14px 0; border-right:2px solid var(--ink); flex:1; min-width:140px; }
+  .hero-stats div:last-child{ border-right:none; }
+  .hero-stats strong{ display:block; font-family:var(--display); font-size:30px; text-transform:none; margin-bottom:2px; }
+
+  @keyframes slamIn{
+    0%{ opacity:0; transform:translateY(34px) rotate(-2deg) scale(.95); }
+    60%{ opacity:1; transform:translateY(-6px) rotate(1deg) scale(1.02); }
+    100%{ opacity:1; transform:translateY(0) rotate(0) scale(1); }
+  }
+  .slam{ animation:slamIn .7s var(--snap) both; }
+
+  .posture-card{
+    background:var(--white); border:var(--border); box-shadow:var(--shadow); padding:22px;
+    position:relative; transform:rotate(1deg); margin-bottom:40px;
+  }
+  .posture-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-family:var(--mono); font-size:11px; text-transform:uppercase; font-weight:700; }
+  .posture-status{ font-weight:700; padding:5px 12px; border:2px solid var(--ink); font-size:11px; text-transform:uppercase; transition:background .2s var(--snap), color .2s var(--snap); }
+  .posture-status.good{ background:var(--lime); }
+  .posture-status.bad{ background:var(--alert); color:var(--white); }
+  #postureSvgWrap, #postureSvgWrap2{ touch-action:none; cursor:grab; border:2px solid var(--ink); background:var(--paper); }
+  #postureSvgWrap:active, #postureSvgWrap2:active{ cursor:grabbing; }
+  .posture-caption{ margin-top:14px; font-size:13px; font-family:var(--mono); }
+  .posture-angle{ font-weight:700; }
+  .spine-line, .spine-head{ transition:stroke .12s linear; }
+
+  section{ padding:80px 0; border-bottom:var(--border); }
+  section.dark{ background:var(--ink); color:var(--white); }
+  section.dark .eyebrow{ background:var(--lime); color:var(--ink); }
+  section.pink{ background:var(--pink); color:var(--white); }
+  section.pink .eyebrow{ background:var(--ink); color:var(--pink); }
+  section.cobalt{ background:var(--cobalt); color:var(--white); }
+  section.cobalt .eyebrow{ background:var(--white); color:var(--cobalt); }
+  .section-head{ max-width:680px; margin-bottom:48px; }
+  .section-head h2{ font-size:clamp(30px, 4.6vw, 54px); }
+  .section-head p{ font-family:var(--head); font-weight:600; font-size:16px; margin-top:16px; }
+
+  .reveal{ opacity:0; transform:translateY(26px) rotate(-1deg) scale(.97); transition:opacity .55s var(--snap), transform .55s var(--snap); }
+  .reveal.in{ opacity:1; transform:translateY(0) rotate(0) scale(1); }
+
+  .problem-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:0; border:var(--border); }
+  @media (max-width: 860px){ .problem-grid{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width: 520px){ .problem-grid{ grid-template-columns:1fr; } }
+  .problem-cell{ background:var(--white); padding:26px 20px; border-right:3px solid var(--ink); border-bottom:3px solid var(--ink); color:var(--ink); transition:transform .2s var(--snap), background .2s ease; }
+  .problem-cell:hover{ transform:translateY(-4px); background:#FFF9DE; }
+  .problem-cell:nth-child(4n){ border-right:none; }
+  .problem-cell .num{ font-family:var(--display); font-size:34px; margin-bottom:10px; display:block; color:var(--pink); }
+  .problem-cell h4{ font-size:16px; margin-bottom:8px; text-transform:none; font-family:var(--head); font-weight:700; }
+  .problem-cell p{ font-size:13.5px; }
+
+  .chip-row{ display:flex; flex-wrap:wrap; gap:10px; }
+  .chip{ border:3px solid var(--ink); padding:9px 16px; font-size:13px; font-family:var(--mono); font-weight:700; text-transform:uppercase; background:var(--white); color:var(--ink); box-shadow:3px 3px 0 var(--ink); transition:transform .15s var(--snap); }
+  .chip:hover{ transform:translate(-2px,-2px); }
+
+  .feat-tabs{ display:flex; gap:0; margin-bottom:32px; border:var(--border); width:fit-content; }
+  .feat-tab{ font-family:var(--mono); font-size:12px; text-transform:uppercase; font-weight:700; padding:12px 22px; border:none; background:var(--white); cursor:pointer; color:var(--ink); border-right:3px solid var(--ink); transition:background .15s ease, color .15s ease; }
+  .feat-tab:last-child{ border-right:none; }
+  .feat-tab.active{ background:var(--ink); color:var(--lime); }
+  .feat-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; }
+  @media (max-width: 900px){ .feat-grid{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width: 600px){ .feat-grid{ grid-template-columns:1fr; } }
+  .feat-card{ background:var(--white); color:var(--ink); border:3px solid var(--ink); padding:22px; box-shadow:5px 5px 0 var(--ink); transition:transform .18s var(--snap), box-shadow .18s var(--snap); }
+  .feat-card:hover{ transform:translate(-3px,-3px); box-shadow:8px 8px 0 var(--ink); }
+  .feat-icon{ width:36px; height:36px; background:var(--lime); border:2px solid var(--ink); display:flex; align-items:center; justify-content:center; margin-bottom:14px; font-weight:700; }
+  .feat-card h4{ font-size:16px; margin-bottom:8px; text-transform:none; font-family:var(--head); font-weight:700; }
+  .feat-card p{ font-size:13.5px; }
+
+  .journey-item{ display:grid; grid-template-columns:60px 1fr; gap:20px; padding:22px 0; border-bottom:3px solid var(--ink); }
+  .journey-item:first-child{ border-top:3px solid var(--ink); }
+  .journey-num{ width:52px; height:52px; background:var(--pink); color:var(--white); border:3px solid var(--ink); display:flex; align-items:center; justify-content:center; font-family:var(--display); font-size:22px; transition:transform .2s var(--snap); }
+  .journey-item:hover .journey-num{ transform:rotate(-8deg) scale(1.08); }
+  .journey-item h4{ font-size:18px; margin-bottom:6px; text-transform:none; font-family:var(--head); font-weight:700; }
+  .journey-item p{ font-size:14px; max-width:60ch; }
+
+  .demo-tabs{ display:flex; gap:0; margin-bottom:24px; border:3px solid var(--white); width:fit-content; }
+  .demo-tab{ font-family:var(--mono); font-size:11px; text-transform:uppercase; font-weight:700; padding:11px 18px; border:none; background:transparent; color:var(--white); cursor:pointer; border-right:3px solid var(--white); transition:background .15s ease, color .15s ease; }
+  .demo-tab:last-child{ border-right:none; }
+  .demo-tab.active{ background:var(--white); color:var(--cobalt); }
+
+  .camera-frame{ border:2px solid var(--ink); background:var(--ink); aspect-ratio:16/11; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  .camera-frame video{ width:100%; height:100%; object-fit:cover; transform:scaleX(-1); display:block; }
+  .camera-idle{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; color:var(--white); }
+  .camera-idle p{ font-family:var(--mono); font-size:12px; margin-top:10px; opacity:.75; max-width:32ch; margin-left:auto; margin-right:auto; }
+  .camera-cam-icon{ font-size:34px; }
+  .camera-overlay{ position:absolute; inset:0; pointer-events:none; border:3px solid var(--lime); opacity:0; transition:opacity .2s ease; }
+  .camera-overlay.on{ opacity:1; }
+  .camera-live-tag{ position:absolute; top:10px; left:10px; background:var(--alert); color:var(--white); font-family:var(--mono); font-size:10px; font-weight:700; text-transform:uppercase; padding:4px 10px; display:flex; align-items:center; gap:6px; }
+  .camera-live-tag .rec-dot{ width:7px; height:7px; border-radius:50%; background:var(--white); animation:blink 1.2s ease infinite; }
+  @keyframes blink{ 50%{ opacity:.2; } }
+  .camera-error{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--white); font-family:var(--mono); font-size:12px; line-height:1.6; text-align:center; padding:20px 28px; }
+  .camera-controls{ display:flex; gap:12px; margin-top:16px; flex-wrap:wrap; }
+
+  .demo-wrap{ display:grid; grid-template-columns:1.6fr 1fr; gap:44px; align-items:center; }
+  @media (max-width: 900px){ .demo-wrap{ grid-template-columns:1fr; } }
+  .demo-readout{ background:var(--ink); border:3px solid var(--white); padding:22px; font-family:var(--mono); font-size:13px; color:var(--white); }
+  .demo-readout .row{ display:flex; justify-content:space-between; padding:11px 0; border-bottom:1px dashed rgba(255,255,255,0.3); }
+  .demo-readout .row:last-child{ border-bottom:none; }
+  .demo-readout .label{ opacity:0.65; }
+  .demo-readout .row span:last-child{ transition:color .15s ease; }
+  .demo-note{ font-size:13px; margin-top:16px; opacity:0.85; }
+
+  .tech-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:0; border:var(--border); }
+  @media (max-width:900px){ .tech-grid{ grid-template-columns:repeat(3,1fr);} }
+  @media (max-width:560px){ .tech-grid{ grid-template-columns:repeat(2,1fr);} }
+  .tech-item{ border-right:3px solid var(--ink); border-bottom:3px solid var(--ink); padding:18px 14px; background:var(--white); color:var(--ink); transition:background .15s ease; }
+  .tech-item:hover{ background:var(--lime); }
+  .tech-item .cat{ font-family:var(--mono); font-size:10px; text-transform:uppercase; font-weight:700; color:var(--pink); letter-spacing:.04em; margin-bottom:8px; display:block; }
+  .tech-item .name{ font-size:13.5px; font-weight:700; font-family:var(--head); }
+
+  .arch-flow{ display:flex; align-items:center; gap:0; flex-wrap:wrap; margin-top:36px; font-family:var(--mono); font-size:12px; font-weight:700; text-transform:uppercase; }
+  .arch-node{ border:3px solid var(--ink); padding:14px 18px; background:var(--lime); color:var(--ink); transition:transform .2s var(--snap); }
+  .arch-node:hover{ transform:translateY(-4px) rotate(-2deg); }
+  .arch-arrow{ color:var(--white); padding:0 14px; font-size:20px; }
+  @media (max-width:760px){ .arch-flow{ flex-direction:column; align-items:stretch; } .arch-arrow{ padding:8px 0; text-align:center; transform:rotate(90deg); } }
+
+  /* WRAPPED CAROUSEL */
+  .wrapped-stage{ display:flex; align-items:center; gap:18px; }
+  .wrapped-viewport{ overflow:hidden; width:min(78vw, 320px); }
+  .wrapped-track{ display:flex; transition:transform .55s var(--snap); }
+  .wrapped-card{ flex:0 0 100%; aspect-ratio:3/4; border:var(--border); padding:26px; display:flex; flex-direction:column; justify-content:space-between; box-sizing:border-box; }
+  .wrapped-card .wc-label{ font-family:var(--mono); font-size:12px; text-transform:uppercase; font-weight:700; }
+  .wrapped-card .wc-num{ font-family:var(--display); font-size:clamp(52px,10vw,80px); line-height:0.9; }
+  .wrapped-card .wc-foot{ font-family:var(--head); font-weight:700; font-size:14px; }
+  .wc-1{ background:var(--lime); color:var(--ink); }
+  .wc-2{ background:var(--pink); color:var(--white); }
+  .wc-3{ background:var(--cobalt); color:var(--white); }
+  .wc-4{ background:var(--white); color:var(--ink); }
+  .wrapped-nav-btn{ width:46px; height:46px; border:3px solid var(--white); background:transparent; color:var(--white); font-family:var(--display); font-size:20px; cursor:pointer; flex:0 0 auto; transition:transform .15s var(--snap), background .15s ease; }
+  .wrapped-nav-btn:hover{ background:var(--lime); color:var(--ink); border-color:var(--lime); transform:scale(1.08); }
+  .wrapped-dots{ display:flex; gap:8px; justify-content:center; margin-top:18px; }
+  .wrapped-dots button{ width:11px; height:11px; border:2px solid var(--white); background:transparent; padding:0; cursor:pointer; transition:transform .15s var(--snap), background .15s ease; }
+  .wrapped-dots button.on{ background:var(--lime); border-color:var(--lime); transform:scale(1.2); }
+
+  .risk-list{ display:flex; flex-direction:column; gap:0; border:var(--border); }
+  .risk-row{ background:var(--white); color:var(--ink); padding:22px 24px; display:grid; grid-template-columns:1fr 1fr; gap:18px; border-bottom:3px solid var(--ink); transition:background .15s ease; }
+  .risk-row:hover{ background:#FFE7F2; }
+  .risk-row:last-child{ border-bottom:none; }
+  @media (max-width:700px){ .risk-row{ grid-template-columns:1fr; } }
+  .risk-row .tag{ font-family:var(--mono); font-size:11px; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:inline-block; padding:3px 10px; background:var(--alert); color:var(--white); }
+  .risk-row .tag.mit{ background:var(--lime); color:var(--ink); }
+  .risk-row p{ font-size:14px; font-weight:600; }
+
+  .roadmap-track{ display:flex; gap:16px; overflow-x:auto; padding-bottom:12px; }
+  .roadmap-card{ min-width:230px; background:var(--white); border:3px solid var(--ink); padding:20px; flex:0 0 auto; box-shadow:5px 5px 0 var(--ink); color:var(--ink); transition:transform .2s var(--snap); }
+  .roadmap-card:hover{ transform:translateY(-5px) rotate(-1deg); }
+  .roadmap-card .dot{ width:10px; height:10px; background:var(--pink); border:2px solid var(--ink); margin-bottom:14px; }
+  .roadmap-card h4{ font-size:15px; margin-bottom:6px; text-transform:none; font-family:var(--head); font-weight:700; }
+  .roadmap-card p{ font-size:13px; }
+
+  .support-wrap{ display:grid; grid-template-columns:0.9fr 1.1fr; gap:44px; }
+  @media (max-width:900px){ .support-wrap{ grid-template-columns:1fr; } }
+  .faq-item{ border-bottom:3px solid var(--ink); padding:16px 0; cursor:pointer; }
+  .faq-item summary{ list-style:none; font-weight:700; font-size:15px; display:flex; justify-content:space-between; align-items:center; font-family:var(--head); }
+  .faq-item summary::-webkit-details-marker{ display:none; }
+  .faq-item summary::after{ content:"+"; font-family:var(--mono); font-size:20px; color:var(--pink); font-weight:700; }
+  .faq-item[open] summary::after{ content:"–"; }
+  .faq-item p{ margin-top:10px; font-size:14px; }
+
+  .support-contact{ border:var(--border); background:var(--white); box-shadow:var(--shadow-sm); padding:20px 22px; margin-top:24px; }
+  .support-contact h4{ font-size:14px; text-transform:none; font-family:var(--head); font-weight:700; margin-bottom:14px; }
+  .support-contact-row{ display:flex; align-items:center; gap:10px; font-family:var(--mono); font-size:13px; padding:8px 0; border-bottom:2px dashed var(--ink); }
+  .support-contact-row:last-child{ border-bottom:none; }
+  .support-contact-row .ico{ width:22px; height:22px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:var(--lime); border:2px solid var(--ink); font-size:11px; font-weight:700; }
+  .response-badge{ display:inline-flex; align-items:center; gap:8px; border:2px solid var(--ink); background:var(--pink); color:var(--white); font-family:var(--mono); font-size:11px; font-weight:700; text-transform:uppercase; padding:6px 12px; margin-top:16px; }
+
+  form.ticket{ background:var(--white); border:var(--border); box-shadow:var(--shadow); padding:26px; color:var(--ink); }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:12px; font-weight:700; margin-bottom:7px; text-transform:uppercase; font-family:var(--mono); }
+  .field input, .field select, .field textarea{
+    width:100%; padding:12px 14px; border:2px solid var(--ink); font-family:var(--head); font-size:14px;
+    background:var(--paper); color:var(--ink); resize:vertical;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color:var(--pink); box-shadow:3px 3px 0 var(--pink); }
+  .ticket-submit{ width:100%; justify-content:center; }
+  .ticket-success{ display:flex; align-items:center; gap:10px; background:var(--lime); color:var(--ink); padding:14px 16px; border:2px solid var(--ink); font-size:14px; margin-top:16px; font-weight:700;
+    max-height:0; overflow:hidden; opacity:0; transition:max-height .35s var(--snap), opacity .3s ease, margin-top .35s var(--snap); margin-top:0; }
+  .ticket-success.show{ max-height:80px; opacity:1; margin-top:16px; }
+
+  footer{ padding:36px 0; background:var(--ink); color:var(--white); border-bottom:none; }
+  .footer-inner{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+  .footer-inner p{ font-size:12px; font-family:var(--mono); text-transform:uppercase; }
+  .footer-links{ display:flex; gap:20px; font-size:12px; font-family:var(--mono); text-transform:uppercase; font-weight:700; list-style:none; }
+  .footer-links a{ color:var(--lime); transition:transform .15s var(--snap); display:inline-block; }
+  .footer-links a:hover{ transform:translateY(-3px); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+function useReveal(){
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { setVisible(true); io.unobserve(el); } });
+    }, { threshold: 0.12 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return [ref, visible];
+}
+
+function Reveal({ children, className = "", as: Tag = "div", ...rest }){
+  const [ref, visible] = useReveal();
+  return (
+    <Tag ref={ref} className={`reveal ${visible ? "in" : ""} ${className}`} {...rest}>
+      {children}
+    </Tag>
+  );
+}
+
+function PressButton({ children, className = "", href, onClick, type = "button" }){
+  const [pressed, setPressed] = useState(false);
+  const cls = `btn ${className} ${pressed ? "pressed" : ""}`;
+  const handlers = {
+    onMouseDown: () => setPressed(true),
+    onMouseUp: () => setPressed(false),
+    onMouseLeave: () => setPressed(false),
+    onTouchStart: () => setPressed(true),
+    onTouchEnd: () => setPressed(false),
+  };
+  if (href) return <a href={href} className={cls} {...handlers} onClick={onClick}>{children}</a>;
+  return <button type={type} className={cls} {...handlers} onClick={onClick}>{children}</button>;
+}
+
+function Marquee(){
+  const items = ["POSTURE-AWARE", "TRAINER-GRADE", "STREAK-BUILT", "SIH 2026", "PREVENTIVE CARE", "REAL-TIME FEEDBACK"];
+  const loop = [...items, ...items];
+  return (
+    <div className="marquee">
+      <div className="marquee-track">
+        {loop.map((t, i) => <span key={i}>{t} ★</span>)}
+      </div>
+    </div>
+  );
+}
+
+// ---- Google Sign-In ----
+// To go live: create an OAuth Client ID at https://console.cloud.google.com/apis/credentials
+// (type "Web application"), add this site's exact origin under "Authorized JavaScript origins",
+// then paste the client ID below. Until you do, the widget runs in demo mode so the UI still works.
+const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+
+function decodeJwt(token){
+  try {
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(
+      atob(base64).split("").map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join("")
+    );
+    return JSON.parse(json);
+  } catch (e){
+    return null;
+  }
+}
+
+function AuthWidget(){
+  const btnRef = useRef(null);
+  const [user, setUser] = useState(null);
+  const [gsiReady, setGsiReady] = useState(false);
+
+  const isConfigured = GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith("YOUR_");
+
+  useEffect(() => {
+    if (!isConfigured) return;
+    let cancelled = false;
+    let attempts = 0;
+
+    function trySetup(){
+      if (cancelled) return;
+      if (window.google && window.google.accounts && window.google.accounts.id){
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleCredential,
+          auto_select: false,
+        });
+        if (btnRef.current){
+          window.google.accounts.id.renderButton(btnRef.current, {
+            type: "standard", theme: "outline", size: "large", text: "signin_with", shape: "rectangular",
+          });
+        }
+        setGsiReady(true);
+      } else if (attempts < 20){
+        attempts += 1;
+        setTimeout(trySetup, 250);
+      }
+    }
+    trySetup();
+    return () => { cancelled = true; };
+  }, []);
+
+  function handleCredential(response){
+    const payload = decodeJwt(response.credential);
+    if (payload){
+      setUser({ name: payload.name, email: payload.email, picture: payload.picture });
+    }
+  }
+
+  function handleDemoLogin(){
+    setUser({
+      name: "Alex Kumar",
+      email: "alex@example.com",
+      picture: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex",
+    });
+  }
+
+  function signOut(){
+    setUser(null);
+    if (window.google && window.google.accounts && window.google.accounts.id){
+      window.google.accounts.id.disableAutoSelect();
+    }
+  }
+
+  if (user){
+    return (
+      <div className="auth-widget">
+        <div className="auth-user">
+          <img src={user.picture} alt={user.name} />
+          <div className="who">
+            <strong>{user.name}</strong>
+            <span>{user.email}</span>
+          </div>
+          <button onClick={signOut}>Sign out</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isConfigured){
+    return (
+      <div className="auth-widget">
+        <div className="gsi-btn-wrap" ref={btnRef}></div>
+        {!gsiReady && <span className="auth-note">Loading sign-in…</span>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="auth-widget" style={{flexDirection:"column", alignItems:"flex-start", gap:"4px"}}>
+      <button className="auth-fallback" onClick={handleDemoLogin}>
+        <span style={{width:"18px", height:"18px", borderRadius:"50%", background:"var(--white)", border:"2px solid var(--ink)", display:"inline-flex", alignItems:"center", justifyContent:"center", fontSize:"10px", fontFamily:"var(--head)", fontWeight:700}}>G</span>
+        Continue with Google
+      </button>
+      <span className="auth-note">Demo mode — add a Google Client ID to go live</span>
+    </div>
+  );
+}
+
+function Nav(){
+  const [open, setOpen] = useState(false);
+  const links = [
+    ["#problem","Why"], ["#features","Features"], ["#journey","Journey"],
+    ["#sensor","Posture demo"], ["#metrics","Wrapped"], ["#support","Support"]
+  ];
+  return (
+    <header className="nav">
+      <div className="nav-inner">
+        <a href="#top" className="brand"><span className="brand-mark"></span>HexaFit</a>
+        <ul className="nav-links">
+          {links.map(([href,label]) => <li key={href}><a href={href}>{label}</a></li>)}
+        </ul>
+        <div className="nav-cta">
+          <AuthWidget />
+          <PressButton href="#support" className="btn-dark">Get support</PressButton>
+          <PressButton href="#sensor" className="btn-primary">Try posture demo</PressButton>
+        </div>
+        <button className={`hamburger ${open ? "open" : ""}`} aria-label="Toggle menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <nav className={`mobile-panel ${open ? "open" : ""}`}>
+        {links.map(([href,label]) => <a key={href} href={href} onClick={() => setOpen(false)}>{label}</a>)}
+      </nav>
+    </header>
+  );
+}
+
+function PostureDemo({ badgeId, wrapId }){
+  const wrapRef = useRef(null);
+  const lineRef = useRef(null);
+  const headRef = useRef(null);
+  const [angle, setAngle] = useState(0);
+  const [aligned, setAligned] = useState(true);
+  const draggingRef = useRef(false);
+  const idleRef = useRef(true);
+
+  useEffect(() => {
+    const baseX = 160, baseY = 200, topY = 40;
+    const wrap = wrapRef.current;
+
+    function update(clientX){
+      const rect = wrap.getBoundingClientRect();
+      const relX = (clientX - rect.left) / rect.width;
+      const x = Math.max(0.08, Math.min(0.92, relX)) * 320;
+      const dx = x - baseX;
+      const dy = baseY - topY;
+      const angleDeg = Math.atan2(dx, dy) * (180 / Math.PI);
+      const headX = baseX + dx;
+      lineRef.current.setAttribute("x2", headX);
+      lineRef.current.setAttribute("y2", topY);
+      headRef.current.setAttribute("cx", headX);
+      headRef.current.setAttribute("cy", topY);
+      const isAligned = Math.abs(angleDeg) <= 8;
+      const stroke = isAligned ? "#3DDC97" : "#FF4B2E";
+      lineRef.current.setAttribute("stroke", stroke);
+      headRef.current.setAttribute("stroke", stroke);
+      setAngle(angleDeg);
+      setAligned(isAligned);
+    }
+
+    function onDown(e){ draggingRef.current = true; idleRef.current = false; update(e.clientX); }
+    function onMove(e){ if (draggingRef.current) update(e.clientX); }
+    function onUp(){ draggingRef.current = false; }
+
+    wrap.addEventListener("pointerdown", onDown);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+
+    let t = Math.random() * 10;
+    let raf;
+    function idleTick(){
+      if (!draggingRef.current && idleRef.current){
+        t += 0.02;
+        const rect = wrap.getBoundingClientRect();
+        const cx = rect.left + rect.width * (0.5 + Math.sin(t) * 0.05);
+        update(cx);
+      }
+      raf = requestAnimationFrame(idleTick);
+    }
+    raf = requestAnimationFrame(idleTick);
+
+    return () => {
+      wrap.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  return (
+    <div>
+      <div id={wrapId} ref={wrapRef}>
+        <svg viewBox="0 0 320 220" width="100%">
+          <line x1="20" y1="200" x2="300" y2="200" stroke="#0E0E10" strokeWidth="1" />
+          <line x1="160" y1="20" x2="160" y2="200" stroke="#0E0E10" strokeWidth="1" strokeDasharray="4 6" />
+          <line ref={lineRef} className="spine-line" x1="160" y1="200" x2="160" y2="40" stroke="#3DDC97" strokeWidth="5" strokeLinecap="square" />
+          <circle ref={headRef} className="spine-head" cx="160" cy="40" r="12" fill="#0E0E10" stroke="#3DDC97" strokeWidth="3" />
+        </svg>
+      </div>
+      <p className="posture-caption">
+        {wrapId === "postureSvgWrap"
+          ? <>Drag the head left/right to simulate the sensor's tilt reading. Angle: <span className="posture-angle">{angle.toFixed(1)}°</span></>
+          : <>Angle from vertical: <span className="posture-angle">{angle.toFixed(1)}°</span></>}
+      </p>
+      <input type="hidden" id={badgeId + "-status"} value={aligned ? "good" : "bad"} readOnly />
+      {wrapId === "postureSvgWrap2" && <SensorReadout aligned={aligned} />}
+      <StatusBadgeUpdater aligned={aligned} target={badgeId} />
+    </div>
+  );
+}
+
+function StatusBadgeUpdater({ aligned, target }){
+  useEffect(() => {
+    const badge = document.getElementById(target);
+    if (badge){
+      badge.textContent = aligned ? "Aligned" : "Correct posture";
+      badge.className = `posture-status ${aligned ? "good" : "bad"}`;
+    }
+  }, [aligned, target]);
+  return null;
+}
+
+function SensorReadout({ aligned }){
+  const [count, setCount] = useState(0);
+  const lastRef = useRef(true);
+  useEffect(() => {
+    if (lastRef.current !== aligned && !aligned){
+      setCount(c => c + 1);
+    }
+    lastRef.current = aligned;
+  }, [aligned]);
+  return (
+    <div className="demo-readout" style={{marginTop:"24px"}}>
+      <div className="row"><span className="label">Frame source</span><span>SensorFrame stream</span></div>
+      <div className="row"><span className="label">Classification</span><span style={{color: aligned ? "#3DDC97" : "#FF4B2E"}}>{aligned ? "correct_alignment" : "deviation_detected"}</span></div>
+      <div className="row"><span className="label">Deviation tolerance</span><span>± 8°</span></div>
+      <div className="row"><span className="label">Corrective event fired</span><span>{count}</span></div>
+      <div className="row"><span className="label">Latency target</span><span>near real-time</span></div>
+    </div>
+  );
+}
+
+function LiveCameraDemo(){
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const cameraRef = useRef(null);
+  const poseRef = useRef(null);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState("");
+  const [aligned, setAligned] = useState(true);
+  const [angle, setAngle] = useState(180);
+
+  useEffect(() => () => { if (cameraRef.current) cameraRef.current.stop(); }, []);
+
+  function calcAngle(A, B, C){
+    const rad = Math.atan2(C.y - B.y, C.x - B.x) - Math.atan2(A.y - B.y, A.x - B.x);
+    let deg = Math.abs(rad * 180 / Math.PI);
+    if (deg > 180) deg = 360 - deg;
+    return deg;
+  }
+
+  function drawSkeleton(ctx, lm, w, h, isAligned){
+    const connections = [[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
+    const color = isAligned ? "#3DDC97" : "#FF4B2E";
+    ctx.lineWidth = isAligned ? 4 : 5;
+    ctx.strokeStyle = color;
+    ctx.shadowColor = isAligned ? "rgba(61,220,151,0.6)" : "rgba(255,75,46,0.8)";
+    ctx.shadowBlur = isAligned ? 8 : 14;
+    connections.forEach(([i, j]) => {
+      const p1 = lm[i], p2 = lm[j];
+      if (p1 && p2 && p1.visibility > 0.4 && p2.visibility > 0.4){
+        ctx.beginPath();
+        ctx.moveTo(p1.x * w, p1.y * h);
+        ctx.lineTo(p2.x * w, p2.y * h);
+        ctx.stroke();
+      }
+    });
+    [11,12,13,14,15,16,23,24,25,26,27,28,0].forEach((i) => {
+      const p = lm[i];
+      if (p && p.visibility > 0.4){
+        ctx.beginPath();
+        ctx.arc(p.x * w, p.y * h, isAligned ? 5 : 6, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#0E0E10";
+        ctx.stroke();
+      }
+    });
+  }
+
+  function onResults(results){
+    const canvas = canvasRef.current, video = videoRef.current;
+    if (!canvas || !video) return;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (results.image) ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+    if (results.poseLandmarks){
+      const lm = results.poseLandmarks;
+      const lHip = lm[23], rHip = lm[24], lKnee = lm[25], rKnee = lm[26];
+      const midHip = { x: (lHip.x + rHip.x) / 2, y: (lHip.y + rHip.y) / 2 };
+      const midKnee = { x: (lKnee.x + rKnee.x) / 2, y: (lKnee.y + rKnee.y) / 2 };
+      const spineAngle = calcAngle(lm[0], midHip, midKnee);
+      const isAligned = spineAngle >= 155;
+      setAngle(spineAngle);
+      setAligned(isAligned);
+      drawSkeleton(ctx, lm, canvas.width, canvas.height, isAligned);
+    }
+    ctx.restore();
+  }
+
+  async function start(){
+    setError("");
+
+    if (location.protocol === "file:"){
+      setError("Camera access is blocked when a page is opened directly from disk (file://). Serve this page over http(s) — for example run a local server or view it via a hosted URL — then try again.");
+      return;
+    }
+    if (typeof Pose === "undefined" || typeof Camera === "undefined"){
+      setError("Pose tracking failed to load. Check your connection and reload the page.");
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      setError("This browser doesn't support camera access. Try the latest Chrome, Edge, or Safari.");
+      return;
+    }
+
+    if (!poseRef.current){
+      const pose = new Pose({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
+      pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: false, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+      pose.onResults(onResults);
+      poseRef.current = pose;
+    }
+    try {
+      if (!cameraRef.current){
+        cameraRef.current = new Camera(videoRef.current, {
+          onFrame: async () => { await poseRef.current.send({ image: videoRef.current }); },
+          width: 640,
+          height: 480,
+        });
+      }
+      await cameraRef.current.start();
+      setRunning(true);
+    } catch (err){
+      console.error("Camera access error:", err);
+      const name = err && err.name;
+      let message = "Could not access your camera. Check browser permissions and try again.";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError"){
+        message = "Camera permission was denied. Click the camera/lock icon in your browser's address bar, allow camera access for this site, then click \"Enable camera\" again.";
+      } else if (name === "NotFoundError" || name === "DevicesNotFoundError"){
+        message = "No camera was found on this device. Connect a webcam and try again.";
+      } else if (name === "NotReadableError" || name === "TrackStartError"){
+        message = "Your camera is already in use by another app or browser tab. Close it there and try again.";
+      } else if (name === "SecurityError"){
+        message = "Camera access is blocked in this context (often when embedded in an iframe without camera permission). Open this page directly in its own browser tab and try again.";
+      }
+      setError(message);
+      setRunning(false);
+    }
+  }
+
+  function stop(){
+    if (cameraRef.current) cameraRef.current.stop();
+    setRunning(false);
+  }
+
+  return (
+    <div className="posture-card" style={{ transform: "rotate(-1deg)" }}>
+      <div className="posture-head">
+        <span>Live camera — MediaPipe Pose</span>
+        <span className={`posture-status ${aligned ? "good" : "bad"}`}>{aligned ? "Aligned" : "Correct posture"}</span>
+      </div>
+      <div className="camera-frame">
+        <video ref={videoRef} playsInline style={{ display: "none" }}></video>
+        <canvas ref={canvasRef} style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }}></canvas>
+        <div className={`camera-overlay ${running ? "on" : ""}`}></div>
+        {running && (
+          <div className="camera-live-tag"><span className="rec-dot"></span>LIVE</div>
+        )}
+        {!running && !error && (
+          <div className="camera-idle">
+            <div className="camera-cam-icon">◉</div>
+            <p>Turn on your camera to try real pose tracking, right in the browser.</p>
+          </div>
+        )}
+        {error && <div className="camera-error">{error}</div>}
+      </div>
+      <div className="camera-controls">
+        <PressButton className="btn-primary" onClick={running ? stop : start}>{running ? "Stop camera" : "Enable camera"}</PressButton>
+      </div>
+      <p className="posture-caption">Angle from vertical: <span className="posture-angle">{angle.toFixed(1)}°</span></p>
+      <div className="demo-readout" style={{ marginTop: "20px" }}>
+        <div className="row"><span className="label">Frame source</span><span>Live webcam via MediaPipe</span></div>
+        <div className="row"><span className="label">Classification</span><span style={{ color: aligned ? "#3DDC97" : "#FF4B2E" }}>{aligned ? "correct_alignment" : "deviation_detected"}</span></div>
+        <div className="row"><span className="label">Deviation tolerance</span><span>within 25° of vertical spine line</span></div>
+        <div className="row"><span className="label">Processing</span><span>On-device — nothing uploaded</span></div>
+      </div>
+    </div>
+  );
+}
+
+function Hero(){
+  return (
+    <section className="hero">
+      <div className="wrap hero-grid">
+        <div>
+          <div className="eyebrow slam" style={{animationDelay:"0s"}}>SIH 2026 · Preventive fitness platform</div>
+          <h1 className="slam" style={{animationDelay:".08s"}}>Trainer-grade form<br /><span className="accent">without a trainer.</span></h1>
+          <p className="lede slam" style={{animationDelay:".16s"}}>HexaFit reads your posture in real time, adapts your workout and meal plan to your actual week, and keeps you honest with streaks — built for people who can't afford or access a personal trainer.</p>
+          <div className="hero-actions slam" style={{animationDelay:".24s"}}>
+            <PressButton href="#sensor" className="btn-dark">See posture tracking →</PressButton>
+            <PressButton href="#features" className="" >Explore features</PressButton>
+          </div>
+        </div>
+        <div className="posture-card slam" style={{animationDelay:".2s"}}>
+          <div className="posture-head">
+            <span>Sensor Module — Live</span>
+            <span id="hero-badge" className="posture-status good">Aligned</span>
+          </div>
+          <div style={{border:"2px solid var(--ink)", background:"var(--paper)"}}>
+            <PostureDemo badgeId="hero-badge" wrapId="postureSvgWrap" />
+          </div>
+        </div>
+      </div>
+      <div className="wrap hero-stats slam" style={{animationDelay:".3s"}}>
+        <div><strong>10</strong>MVP features</div>
+        <div><strong>&lt;2.5s</strong>avg load target</div>
+        <div><strong>NRT</strong>posture feedback</div>
+        <div><strong>08</strong>step user journey</div>
+      </div>
+    </section>
+  );
+}
+
+function Problem(){
+  const items = [
+    ["01","No personalization","Advice that ignores schedule, body, and goals rarely sticks past week two."],
+    ["02","Trainers out of reach","Certified guidance is expensive or simply unavailable in many areas."],
+    ["03","No long-term visibility","Without measurable milestones, motivation quietly erodes."],
+    ["04","Low accountability","No streaks, no nudges, no one checking in — nothing to hold onto."],
+  ];
+  return (
+    <section id="problem">
+      <div className="wrap">
+        <Reveal className="section-head">
+          <div className="eyebrow">The problem</div>
+          <h2>Most fitness journeys don't fail from laziness.</h2>
+          <p>They fail from bad guidance — generic plans, zero visibility, and no one to correct your form in the moment.</p>
+        </Reveal>
+        <Reveal className="problem-grid" style={{display:"grid"}}>
+          {items.map(([num,title,body]) => (
+            <div className="problem-cell" key={num}>
+              <span className="num">{num}</span>
+              <h4>{title}</h4>
+              <p>{body}</p>
+            </div>
+          ))}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function Audience(){
+  const chips = ["College students","Working professionals","Beginners needing structure","Weight loss & endurance goals","Limited trainer access"];
+  return (
+    <section>
+      <div className="wrap">
+        <Reveal className="section-head">
+          <div className="eyebrow">Built for</div>
+          <h2>People training around a real, busy life.</h2>
+        </Reveal>
+        <Reveal className="chip-row" style={{display:"flex"}}>
+          {chips.map(c => <span className="chip" key={c}>{c}</span>)}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function Features(){
+  const [tab, setTab] = useState("mvp");
+  const mvp = [
+    ["◎","Onboarding & profile","Age, weight, goals and activity level captured in one flow."],
+    ["◇","Goal setup","Weight loss, muscle gain, stamina or flexibility — pick a direction."],
+    ["▤","Weekly workout plan","Personalized around the goal and the time you actually have."],
+    ["◈","Nutrition & water tracker","Log meals and hydration without friction."],
+    ["✦","Trainer-like insights","Recommendations generated from your profile and logs."],
+    ["▥","Progress dashboard","Weight, BMI estimate, streaks and calories in one view."],
+    ["↝","Position sensor integration","Tracks posture and alignment during workout sessions."],
+    ["◉","Real-time posture feedback","Correct or incorrect alignment, flagged as it happens."],
+    ["◔","Smart reminders","Motivational nudges timed to when you're likely to skip."],
+    ["◫","Support & FAQs","A ticket form for anything the app can't answer."],
+  ];
+  const stretch = [
+    ["✧","AI recommendation engine","Workout and meal suggestions that adapt automatically."],
+    ["⌁","Wearable integration","Sync steps and heart rate from devices you already wear."],
+    ["◭","Community challenges","Leaderboards that turn consistency into a shared game."],
+    ["◐","Voice logging","Log a workout by saying it, mid-session."],
+  ];
+  const list = tab === "mvp" ? mvp : stretch;
+  return (
+    <section id="features" className="dark">
+      <div className="wrap">
+        <Reveal className="section-head">
+          <div className="eyebrow">What's inside</div>
+          <h2>Ten features to launch with. Four more to grow into.</h2>
+          <p>MVP is what ships to the demo floor. Stretch is where HexaFit goes next.</p>
+        </Reveal>
+        <Reveal className="feat-tabs" style={{display:"flex"}}>
+          <button className={`feat-tab ${tab === "mvp" ? "active" : ""}`} onClick={() => setTab("mvp")}>MVP</button>
+          <button className={`feat-tab ${tab === "stretch" ? "active" : ""}`} onClick={() => setTab("stretch")}>Stretch</button>
+        </Reveal>
+        <Reveal className="feat-grid" style={{display:"grid"}} key={tab}>
+          {list.map(([icon,title,body]) => (
+            <div className="feat-card" key={title}>
+              <div className="feat-icon">{icon}</div>
+              <h4>{title}</h4>
+              <p>{body}</p>
+            </div>
+          ))}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function Journey(){
+  const steps = [
+    ["Sign up & complete health profile","Basic vitals and lifestyle context, captured once."],
+    ["Select goal & time availability","The plan bends to your week, not the other way round."],
+    ["Get workout & meal structure","A starting plan generated from your profile."],
+    ["Start guided workout, sensor on","Position sensor activates for the session."],
+    ["Get posture insights mid-session","Correction tips arrive while it still matters."],
+    ["Log activity & hydration","A few taps, not a chore."],
+    ["Track progress on the dashboard","Weekly and monthly charts show the trend line."],
+    ["Hit milestones, unlock badges","Consistency gets recognized, not just tracked."],
+  ];
+  return (
+    <section id="journey">
+      <div className="wrap">
+        <Reveal className="section-head">
+          <div className="eyebrow">The user journey</div>
+          <h2>Eight steps from sign-up to your first badge.</h2>
+          <p>A fixed sequence — each step depends on the one before it.</p>
+        </Reveal>
+        <Reveal>
+          {steps.map(([title,body], i) => (
+            <div className="journey-item" key={title}>
+              <div className="journey-num">{i + 1}</div>
+              <div><h4>{title}</h4><p>{body}</p></div>
+            </div>
+          ))}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function SensorSection(){
+  const [mode, setMode] = useState("manual");
+  return (
+    <section id="sensor" className="cobalt">
+      <div className="wrap">
+        <Reveal className="section-head">
+          <div className="eyebrow">Position sensor demo</div>
+          <h2>The SIH demo centerpiece: live posture classification.</h2>
+          <p>Drag the simulated sensor, or switch to your camera for real pose tracking running live in the browser.</p>
+        </Reveal>
+        <Reveal className="demo-tabs" style={{display:"flex"}}>
+          <button className={`demo-tab ${mode === "manual" ? "active" : ""}`} onClick={() => setMode("manual")}>Manual demo</button>
+          <button className={`demo-tab ${mode === "live" ? "active" : ""}`} onClick={() => setMode("live")}>Live camera</button>
+        </Reveal>
+        <Reveal className="demo-wrap" style={{display:"grid"}} key={mode}>
+          {mode === "manual" ? (
+            <div className="posture-card" style={{transform:"rotate(-1deg)"}}>
+              <div className="posture-head">
+                <span>Guided exercise — Plank</span>
+                <span id="sensor-badge" className="posture-status good">Aligned</span>
+              </div>
+              <div style={{border:"2px solid var(--ink)", background:"var(--paper)"}}>
+                <PostureDemo badgeId="sensor-badge" wrapId="postureSvgWrap2" />
+              </div>
+            </div>
+          ) : (
+            <LiveCameraDemo />
+          )}
+          <div>
+            <p className="demo-note">
+              {mode === "manual"
+                ? "In production this reads live SensorFrame data and writes classified PostureEvent records for the progress dashboard and adherence metrics."
+                : "This runs Google's MediaPipe Pose model fully in your browser — your video never leaves your device. It's the same joint-angle math the production posture service will use once the dedicated sensor pipeline ships."}
+            </p>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function TechArchitecture(){
+  const tech = [
+    ["Frontend","React / HTML5+JS"], ["Charts","Chart.js"], ["Backend","Node.js + Express"],
+    ["Database","MongoDB"], ["Auth","JWT-based"], ["Frontend host","Vercel / Netlify"],
+    ["Backend host","Render / Railway"], ["DB host","MongoDB Atlas"], ["Data","SensorFrame · PostureEvent"],
+    ["Ops","Notification module"],
+  ];
+  const flow = ["Client app","REST API layer","Posture analysis service","MongoDB store"];
+  return (
+    <section>
+      <div className="wrap">
+        <Reveal className="section-head">
+          <div className="eyebrow">Under the hood</div>
+          <h2>A stack sized for a hackathon build, shaped for a real product.</h2>
+        </Reveal>
+        <Reveal className="tech-grid" style={{display:"grid"}}>
+          {tech.map(([cat,name]) => (
+            <div className="tech-item" key={cat}><span className="cat">{cat}</span><span className="name">{name}</span></div>
+          ))}
+        </Reveal>
+        <Reveal className="arch-flow" style={{display:"flex", background:"var(--ink)", padding:"20px", border:"var(--border)"}}>
+          {flow.map((node, i) => (
+            <React.Fragment key={node}>
+              <div className="arch-node">{node}</div>
+              {i < flow.length - 1 && <span className="arch-arrow">→</span>}
+            </React.Fragment>
+          ))}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function WrappedCard({ cls, label, num, decimals, suffix, foot, visible }){
+  const [display, setDisplay] = useState(0);
+  const doneRef = useRef(false);
+  useEffect(() => {
+    if (!visible || doneRef.current) return;
+    doneRef.current = true;
+    const duration = 900;
+    const start = performance.now();
+    function tick(now){
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(num * eased);
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }, [visible]);
+  return (
+    <div className={`wrapped-card ${cls}`}>
+      <div className="wc-label">{label}</div>
+      <div className="wc-num">{decimals ? display.toFixed(decimals) : Math.round(display)}<span style={{fontSize:"0.5em"}}>{suffix}</span></div>
+      <div className="wc-foot">{foot}</div>
+    </div>
+  );
+}
+
+function WrappedCarousel(){
+  const [index, setIndex] = useState(0);
+  const [ref, visible] = useReveal();
+  const cards = [
+    { cls:"wc-1", label:"01 / Streaks", num:72, decimals:0, suffix:"%", foot:"Target 7-day streak completion" },
+    { cls:"wc-2", label:"02 / Logging", num:4.2, decimals:1, suffix:"", foot:"Logged workouts / user / week" },
+    { cls:"wc-3", label:"03 / Posture", num:85, decimals:0, suffix:"%", foot:"Posture correction adherence" },
+    { cls:"wc-4", label:"04 / Improvement", num:40, decimals:0, suffix:"%", foot:"Drop in bad-posture events, 2 weeks" },
+  ];
+  const go = (i) => setIndex((i + cards.length) % cards.length);
+  return (
+    <div ref={ref} className={`reveal ${visible ? "in" : ""}`}>
+      <div className="wrapped-stage">
+        <button className="wrapped-nav-btn" onClick={() => go(index - 1)} aria-label="Previous stat">‹</button>
+        <div className="wrapped-viewport">
+          <div className="wrapped-track" style={{ transform: `translateX(-${index * 100}%)` }}>
+            {cards.map((c, i) => <WrappedCard key={c.label} {...c} visible={visible && i === index} />)}
+          </div>
+        </div>
+        <button className="wrapped-nav-btn" onClick={() => go(index + 1)} aria-label="Next stat">›</button>
+      </div>
+      <div className="wrapped-dots">
+        {cards.map((c, i) => <button key={c.label} className={i === index ? "on" : ""} onClick={() => setIndex(i)} aria-label={`Go to stat ${i+1}`} />)}
+      </div>
+    </div>
+  );
+}
+
+function Metrics(){
+  return (
+    <section id="metrics" className="dark">
+      <div className="wrap">
+        <Reveal className="section-head">
+          <div className="eyebrow">Your HexaFit Wrapped</div>
+          <h2>What "working" looks like, by the numbers.</h2>
+          <p>Swipe through — each card is one target metric.</p>
+        </Reveal>
+      </div>
+      <div className="wrap">
+        <WrappedCarousel />
+      </div>
+    </section>
+  );
+}
+
+function Risks(){
+  const rows = [
+    ["Users stop logging after a few days","Streak rewards, timely reminders, mini-goals"],
+    ["Generic recommendations erode trust","Deep personalization inputs, adaptive updates"],
+    ["Manual logs cause data inconsistency","Input validation, sensible default suggestions"],
+  ];
+  return (
+    <section className="pink">
+      <div className="wrap">
+        <Reveal className="section-head">
+          <div className="eyebrow">Risks & mitigation</div>
+          <h2>What breaks consistency, and the counter for it.</h2>
+        </Reveal>
+        <Reveal className="risk-list" style={{display:"flex", flexDirection:"column"}}>
+          {rows.map(([risk,mit]) => (
+            <div className="risk-row" key={risk}>
+              <div><span className="tag">Risk</span><p>{risk}</p></div>
+              <div><span className="tag mit">Mitigation</span><p>{mit}</p></div>
+            </div>
+          ))}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function Roadmap(){
+  const items = [
+    ["AI coaching chatbot","Conversational guidance layered on top of logs."],
+    ["Computer vision correction","Camera-based posture analysis, no extra hardware."],
+    ["Mental wellness check-ins","Because consistency is more than physical."],
+    ["Regional language support","Guidance that speaks the user's language, literally."],
+    ["Team-based challenges","Gamified accountability, in groups."],
+  ];
+  return (
+    <section>
+      <div className="wrap">
+        <Reveal className="section-head">
+          <div className="eyebrow">Roadmap</div>
+          <h2>Past the demo floor.</h2>
+        </Reveal>
+        <Reveal className="roadmap-track" style={{display:"flex"}}>
+          {items.map(([title,body]) => (
+            <div className="roadmap-card" key={title}>
+              <div className="dot"></div>
+              <h4>{title}</h4>
+              <p>{body}</p>
+            </div>
+          ))}
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function Faq(){
+  const faqs = [
+    ["How does posture tracking work?","The position sensor streams alignment frames during a guided workout; the posture analysis service classifies each frame and returns correction tips in near real time.", true],
+    ["Do I need special hardware?","Not for the MVP — the sensor module works with commonly available position sensors, with computer-vision-only tracking planned for the roadmap.", false],
+    ["Is my health data private?","Yes — data privacy and secure storage are core non-functional requirements, alongside JWT-based authentication.", false],
+    ["What if my plan feels off?","Plans adapt from your ongoing logs. You can also raise a ticket and the team will review your profile inputs directly.", false],
+    ["How can I reset my fitness goal?","Go to Profile > Goals and choose Update Goal — your plan refreshes based on your latest data.", false],
+    ["Why is my streak not updating?","Streaks update once at least one daily activity log is saved, so make sure your connection is stable when you submit a log.", false],
+    ["Can I edit previous workout logs?","Yes — open Activity History, select the day, and use the Edit option for workout or hydration records.", false],
+  ];
+  return (
+    <div>
+      {faqs.map(([q,a,open]) => (
+        <details className="faq-item" open={open} key={q}>
+          <summary>{q}</summary>
+          <p>{a}</p>
+        </details>
+      ))}
+      <div className="support-contact">
+        <h4>Still stuck? Reach us directly.</h4>
+        <div className="support-contact-row"><span className="ico">@</span><span>support@hexafit.app</span></div>
+        <div className="support-contact-row"><span className="ico">☎</span><span>+91 90000 00000</span></div>
+        <div className="support-contact-row"><span className="ico">⏱</span><span>9:00 AM – 8:00 PM (IST)</span></div>
+        <div className="response-badge">Response time: within 24 hours</div>
+      </div>
+    </div>
+  );
+}
+
+function TicketForm(){
+  const [form, setForm] = useState({ name:"", email:"", topic:"", message:"" });
+  const [submitted, setSubmitted] = useState(false);
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setSubmitted(true);
+    setForm({ name:"", email:"", topic:"", message:"" });
+    setTimeout(() => setSubmitted(false), 5000);
+  };
+  return (
+    <form className="ticket" onSubmit={handleSubmit}>
+      <div className="field">
+        <label htmlFor="tname">Name</label>
+        <input id="tname" type="text" placeholder="Your name" required value={form.name} onChange={set("name")} />
+      </div>
+      <div className="field">
+        <label htmlFor="temail">Email</label>
+        <input id="temail" type="email" placeholder="you@example.com" required value={form.email} onChange={set("email")} />
+      </div>
+      <div className="field">
+        <label htmlFor="ttopic">Topic</label>
+        <select id="ttopic" required value={form.topic} onChange={set("topic")}>
+          <option value="">Choose a topic</option>
+          <option>Posture tracking issue</option>
+          <option>Workout plan question</option>
+          <option>Account & login</option>
+          <option>Bug report</option>
+          <option>Something else</option>
+        </select>
+      </div>
+      <div className="field">
+        <label htmlFor="tmsg">Message</label>
+        <textarea id="tmsg" rows="4" placeholder="What's going on?" required value={form.message} onChange={set("message")}></textarea>
+      </div>
+      <PressButton type="submit" className="btn-primary ticket-submit">Submit ticket</PressButton>
+      <div className={`ticket-success ${submitted ? "show" : ""}`}>Ticket received — the team will follow up by email.</div>
+    </form>
+  );
+}
+
+function Support(){
+  return (
+    <section id="support">
+      <div className="wrap">
+        <Reveal className="section-head">
+          <div className="eyebrow">Support</div>
+          <h2>Stuck on something? Ask, or check the FAQ first.</h2>
+        </Reveal>
+        <Reveal className="support-wrap" style={{display:"grid"}}>
+          <Faq />
+          <TicketForm />
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function Footer(){
+  return (
+    <footer>
+      <div className="wrap footer-inner">
+        <p>HexaFit — SIH 2026 · Preventive fitness, personalized guidance, real-time posture feedback.</p>
+        <ul className="footer-links">
+          <li><a href="#top">Back to top</a></li>
+          <li><a href="#support">Support</a></li>
+        </ul>
+      </div>
+    </footer>
+  );
+}
+
+function App(){
+  return (
+    <div id="top">
+      <Nav />
+      <Marquee />
+      <main>
+        <Hero />
+        <Problem />
+        <Audience />
+        <Features />
+        <Journey />
+        <SensorSection />
+        <TechArchitecture />
+        <Metrics />
+        <Risks />
+        <Roadmap />
+        <Support />
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+
+<script type="module">
+  // 1. Import the core app and Analytics
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
+  
+  // 2. NEW: Import Firebase Authentication
+  import { getAuth } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyCkRKln9gREs_TaswZNd1v7sCNnrRUUZf8",
+    authDomain: "hexafit-6b183.firebaseapp.com",
+    projectId: "hexafit-6b183",
+    storageBucket: "hexafit-6b183.firebasestorage.app",
+    messagingSenderId: "626789259810",
+    appId: "1:626789259810:web:9ef550daa29b9ff249487b",
+    measurementId: "G-NXHCY1CGK8"
+  };
+
+  // 3. Initialize Firebase, Analytics, and Auth
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  
+  // NEW: Initialize Auth
+  const auth = getAuth(app);
+
+  // Test to make sure it's working
+  console.log("Firebase Authentication is ready!", auth);
+</script>
+</body>
+</html>
