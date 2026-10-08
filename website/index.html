@@ -141,6 +141,17 @@
     .btn-primary {
       background: var(--lime);
     }
+    .btn-download {
+      background: var(--lime);
+      color: var(--ink);
+    }
+
+    .btn-download::before {
+      content: "↓";
+      font-family: var(--mono);
+      font-weight: 700;
+    }
+
 
     .btn-alt {
       background: var(--pink);
@@ -2658,6 +2669,7 @@
             <div className="nav-cta">
               <AuthWidget />
               <PressButton href="#support" className="btn-dark">Get support</PressButton>
+              <a href="downloads/HEXA-FIT.apk" download="HEXA-FIT.apk" className="btn btn-download">Download app</a>
               <PressButton href="#sensor" className="btn-primary">AI Vision Studio ✦</PressButton>
             </div>
             <button className={`hamburger ${open ? "open" : ""}`} aria-label="Toggle menu" aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -3712,6 +3724,7 @@ Give an encouraging verdict and 1 specific corrective drill for next time.`;
               <div className="hero-actions slam" style={{ animationDelay: ".24s" }}>
                 <PressButton href="#sensor" className="btn-dark">Try AI Vision Studio →</PressButton>
                 <PressButton href="#features" className="" >Explore features</PressButton>
+                <a href="downloads/HEXA-FIT.apk" download="HEXA-FIT.apk" className="btn btn-download">Download Android app</a>
               </div>
             </div>
             <div className="posture-card slam" style={{ animationDelay: ".2s" }}>
