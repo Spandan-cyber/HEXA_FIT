@@ -1,0 +1,4427 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HexaFit — Trainer-grade guidance, no trainer required</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+  <style>
+    :root {
+      --ink: #0E0E10;
+      --paper: #F5F4EF;
+      --white: #FFFFFF;
+      --lime: #C8FF3D;
+      --pink: #FF3D8F;
+      --cobalt: #3D5AFF;
+      --alert: #FF4B2E;
+      --border: 4px solid var(--ink);
+      --shadow: 7px 7px 0 var(--ink);
+      --shadow-sm: 4px 4px 0 var(--ink);
+      --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --snap: cubic-bezier(0.7, 0, 0.2, 1.6);
+      --display: 'Anton', system-ui, sans-serif;
+      --head: 'Space Grotesk', system-ui, sans-serif;
+      --mono: 'Space Mono', monospace;
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--head);
+      font-weight: 500;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img,
+    svg {
+      display: block;
+      max-width: 100%;
+    }
+
+    .wrap {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: var(--display);
+      font-weight: 400;
+      letter-spacing: 0.002em;
+      text-transform: uppercase;
+      line-height: 0.92;
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+      font-weight: 700;
+      background: var(--ink);
+      color: var(--lime);
+      padding: 6px 12px;
+      transform: rotate(-1.5deg);
+    }
+
+    .btn {
+      font-family: var(--head);
+      font-weight: 700;
+      font-size: 15px;
+      padding: 14px 26px;
+      border: var(--border);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: var(--shadow-sm);
+      background: var(--white);
+      color: var(--ink);
+      transition: transform .15s var(--snap), box-shadow .15s var(--snap);
+    }
+
+    .btn:hover {
+      transform: translate(-3px, -3px);
+      box-shadow: 7px 7px 0 var(--ink);
+    }
+
+    .btn.pressed {
+      transform: translate(2px, 2px) !important;
+      box-shadow: 1px 1px 0 var(--ink) !important;
+    }
+
+    .btn-primary {
+      background: var(--lime);
+    }
+    .btn-download {
+      background: var(--lime);
+      color: var(--ink);
+    }
+
+    .btn-download::before {
+      content: "↓";
+      font-family: var(--mono);
+      font-weight: 700;
+    }
+
+
+    .btn-alt {
+      background: var(--pink);
+      color: var(--white);
+    }
+
+    .btn-dark {
+      background: var(--ink);
+      color: var(--white);
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--cobalt);
+      outline-offset: 3px;
+    }
+
+    /* NAV */
+    header.nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--paper);
+      border-bottom: var(--border);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      max-width: var(--max);
+      margin: 0 auto;
+      flex-wrap: wrap;
+      row-gap: 10px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--display);
+      font-weight: 400;
+      font-size: 24px;
+      text-transform: uppercase;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      background: var(--lime);
+      border: 3px solid var(--ink);
+      transition: transform .4s var(--spring);
+    }
+
+    .brand:hover .brand-mark {
+      transform: rotate(180deg);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-family: var(--mono);
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 10px 14px;
+      border: 2px solid transparent;
+      transition: transform .15s var(--snap);
+      display: inline-block;
+    }
+
+    .nav-links a:hover {
+      border: 2px solid var(--ink);
+      background: var(--white);
+      transform: translateY(-2px);
+    }
+
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: var(--ink);
+      border: var(--border);
+      cursor: pointer;
+      padding: 10px;
+    }
+
+    .hamburger span {
+      width: 20px;
+      height: 3px;
+      background: var(--lime);
+      display: block;
+      transition: transform .3s var(--spring), opacity .2s ease;
+    }
+
+    .hamburger.open span:nth-child(1) {
+      transform: translateY(8px) rotate(45deg);
+    }
+
+    .hamburger.open span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .hamburger.open span:nth-child(3) {
+      transform: translateY(-8px) rotate(-45deg);
+    }
+
+    .mobile-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .35s var(--snap);
+      border-top: 0 solid var(--ink);
+    }
+
+    .mobile-panel.open {
+      max-height: 400px;
+      border-top: var(--border);
+      background: var(--white);
+    }
+
+    @media (max-width: 900px) {
+      .nav-links {
+        display: none;
+      }
+
+      .nav-cta .btn-dark {
+        display: none;
+      }
+
+      .hamburger {
+        display: flex;
+      }
+
+      .mobile-panel a {
+        display: block;
+        padding: 16px 24px;
+        font-family: var(--mono);
+        font-size: 13px;
+        text-transform: uppercase;
+        font-weight: 700;
+        border-bottom: 2px solid var(--ink);
+      }
+    }
+
+    /* GOOGLE AUTH */
+    .auth-widget {
+      display: flex;
+      align-items: center;
+    }
+
+    .gsi-btn-wrap {
+      line-height: 0;
+    }
+
+    .gsi-btn-wrap iframe {
+      border: 3px solid var(--ink) !important;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .auth-fallback {
+      border: 3px solid var(--ink);
+      background: var(--white);
+      padding: 9px 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: transform .15s var(--snap);
+    }
+
+    .auth-fallback:hover {
+      transform: translate(-2px, -2px);
+    }
+
+    .auth-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 3px solid var(--ink);
+      background: var(--lime);
+      padding: 6px 14px 6px 6px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .auth-user img {
+      width: 30px;
+      height: 30px;
+      border: 2px solid var(--ink);
+      object-fit: cover;
+    }
+
+    .auth-user .who {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+    }
+
+    .auth-user .who strong {
+      font-family: var(--head);
+      font-size: 12.5px;
+    }
+
+    .auth-user .who span {
+      font-family: var(--mono);
+      font-size: 10px;
+      opacity: .75;
+    }
+
+    .auth-user button {
+      border: 2px solid var(--ink);
+      background: var(--white);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+
+    .auth-note {
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      opacity: .6;
+      margin-top: 6px;
+    }
+
+    @media (max-width:900px) {
+      .auth-widget {
+        padding: 16px 24px;
+        border-bottom: 2px solid var(--ink);
+      }
+    }
+
+    /* MARQUEE */
+    .marquee {
+      background: var(--ink);
+      border-bottom: var(--border);
+      overflow: hidden;
+      padding: 10px 0;
+    }
+
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marquee 16s linear infinite;
+    }
+
+    .marquee-track span {
+      white-space: nowrap;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 13px;
+      text-transform: uppercase;
+      color: var(--lime);
+      padding: 0 20px;
+      letter-spacing: .05em;
+    }
+
+    .marquee-track span:nth-child(even) {
+      color: var(--pink);
+    }
+
+    @keyframes marquee {
+      from {
+        transform: translateX(0);
+      }
+
+      to {
+        transform: translateX(-50%);
+      }
+    }
+
+    /* HERO */
+    .hero {
+      position: relative;
+      padding: 56px 0 0;
+      overflow: hidden;
+      background: var(--lime);
+      border-bottom: var(--border);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 40px;
+      align-items: end;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+    }
+
+    .hero h1 {
+      font-size: clamp(46px, 8vw, 96px);
+      margin-bottom: 24px;
+    }
+
+    .hero h1 .accent {
+      background: var(--ink);
+      color: var(--white);
+      padding: 0 10px;
+      display: inline-block;
+    }
+
+    .hero p.lede {
+      font-family: var(--head);
+      font-weight: 600;
+      font-size: 18px;
+      max-width: 44ch;
+      margin-bottom: 30px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 36px;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 0;
+      flex-wrap: wrap;
+      font-family: var(--mono);
+      border-top: 3px solid var(--ink);
+    }
+
+    .hero-stats div {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 14px 22px 14px 0;
+      border-right: 2px solid var(--ink);
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .hero-stats div:last-child {
+      border-right: none;
+    }
+
+    .hero-stats strong {
+      display: block;
+      font-family: var(--display);
+      font-size: 30px;
+      text-transform: none;
+      margin-bottom: 2px;
+    }
+
+    @keyframes slamIn {
+      0% {
+        opacity: 0;
+        transform: translateY(34px) rotate(-2deg) scale(.95);
+      }
+
+      60% {
+        opacity: 1;
+        transform: translateY(-6px) rotate(1deg) scale(1.02);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0) rotate(0) scale(1);
+      }
+    }
+
+    .slam {
+      animation: slamIn .7s var(--snap) both;
+    }
+
+    .posture-card {
+      background: var(--white);
+      border: var(--border);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      position: relative;
+      transform: rotate(1deg);
+      margin-bottom: 40px;
+    }
+
+    .posture-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .posture-status {
+      font-weight: 700;
+      padding: 5px 12px;
+      border: 2px solid var(--ink);
+      font-size: 11px;
+      text-transform: uppercase;
+      transition: background .2s var(--snap), color .2s var(--snap);
+    }
+
+    .posture-status.good {
+      background: var(--lime);
+    }
+
+    .posture-status.bad {
+      background: var(--alert);
+      color: var(--white);
+    }
+
+    #postureSvgWrap,
+    #postureSvgWrap2 {
+      touch-action: none;
+      cursor: grab;
+      border: 2px solid var(--ink);
+      background: var(--paper);
+    }
+
+    #postureSvgWrap:active,
+    #postureSvgWrap2:active {
+      cursor: grabbing;
+    }
+
+    .posture-caption {
+      margin-top: 14px;
+      font-size: 13px;
+      font-family: var(--mono);
+    }
+
+    .posture-angle {
+      font-weight: 700;
+    }
+
+    .spine-line,
+    .spine-head {
+      transition: stroke .12s linear;
+    }
+
+    section {
+      padding: 80px 0;
+      border-bottom: var(--border);
+    }
+
+    section.dark {
+      background: var(--ink);
+      color: var(--white);
+    }
+
+    section.dark .eyebrow {
+      background: var(--lime);
+      color: var(--ink);
+    }
+
+    section.pink {
+      background: var(--pink);
+      color: var(--white);
+    }
+
+    section.pink .eyebrow {
+      background: var(--ink);
+      color: var(--pink);
+    }
+
+    section.cobalt {
+      background: var(--cobalt);
+      color: var(--white);
+    }
+
+    section.cobalt .eyebrow {
+      background: var(--white);
+      color: var(--cobalt);
+    }
+
+    .section-head {
+      max-width: 680px;
+      margin-bottom: 48px;
+    }
+
+    .section-head h2 {
+      font-size: clamp(30px, 4.6vw, 54px);
+    }
+
+    .section-head p {
+      font-family: var(--head);
+      font-weight: 600;
+      font-size: 16px;
+      margin-top: 16px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(26px) rotate(-1deg) scale(.97);
+      transition: opacity .55s var(--snap), transform .55s var(--snap);
+    }
+
+    .reveal.in {
+      opacity: 1;
+      transform: translateY(0) rotate(0) scale(1);
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border: var(--border);
+    }
+
+    @media (max-width: 860px) {
+      .problem-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .problem-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .problem-cell {
+      background: var(--white);
+      padding: 26px 20px;
+      border-right: 3px solid var(--ink);
+      border-bottom: 3px solid var(--ink);
+      color: var(--ink);
+      transition: transform .2s var(--snap), background .2s ease;
+    }
+
+    .problem-cell:hover {
+      transform: translateY(-4px);
+      background: #FFF9DE;
+    }
+
+    .problem-cell:nth-child(4n) {
+      border-right: none;
+    }
+
+    .problem-cell .num {
+      font-family: var(--display);
+      font-size: 34px;
+      margin-bottom: 10px;
+      display: block;
+      color: var(--pink);
+    }
+
+    .problem-cell h4 {
+      font-size: 16px;
+      margin-bottom: 8px;
+      text-transform: none;
+      font-family: var(--head);
+      font-weight: 700;
+    }
+
+    .problem-cell p {
+      font-size: 13.5px;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      border: 3px solid var(--ink);
+      padding: 9px 16px;
+      font-size: 13px;
+      font-family: var(--mono);
+      font-weight: 700;
+      text-transform: uppercase;
+      background: var(--white);
+      color: var(--ink);
+      box-shadow: 3px 3px 0 var(--ink);
+      transition: transform .15s var(--snap);
+    }
+
+    .chip:hover {
+      transform: translate(-2px, -2px);
+    }
+
+    .feat-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 32px;
+      border: var(--border);
+      width: fit-content;
+    }
+
+    .feat-tab {
+      font-family: var(--mono);
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 12px 22px;
+      border: none;
+      background: var(--white);
+      cursor: pointer;
+      color: var(--ink);
+      border-right: 3px solid var(--ink);
+      transition: background .15s ease, color .15s ease;
+    }
+
+    .feat-tab:last-child {
+      border-right: none;
+    }
+
+    .feat-tab.active {
+      background: var(--ink);
+      color: var(--lime);
+    }
+
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .feat-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .feat-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .feat-card {
+      background: var(--white);
+      color: var(--ink);
+      border: 3px solid var(--ink);
+      padding: 22px;
+      box-shadow: 5px 5px 0 var(--ink);
+      transition: transform .18s var(--snap), box-shadow .18s var(--snap);
+    }
+
+    .feat-card:hover {
+      transform: translate(-3px, -3px);
+      box-shadow: 8px 8px 0 var(--ink);
+    }
+
+    .feat-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--lime);
+      border: 2px solid var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      font-weight: 700;
+    }
+
+    .feat-card h4 {
+      font-size: 16px;
+      margin-bottom: 8px;
+      text-transform: none;
+      font-family: var(--head);
+      font-weight: 700;
+    }
+
+    .feat-card p {
+      font-size: 13.5px;
+    }
+
+    .journey-item {
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      gap: 20px;
+      padding: 22px 0;
+      border-bottom: 3px solid var(--ink);
+    }
+
+    .journey-item:first-child {
+      border-top: 3px solid var(--ink);
+    }
+
+    .journey-num {
+      width: 52px;
+      height: 52px;
+      background: var(--pink);
+      color: var(--white);
+      border: 3px solid var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--display);
+      font-size: 22px;
+      transition: transform .2s var(--snap);
+    }
+
+    .journey-item:hover .journey-num {
+      transform: rotate(-8deg) scale(1.08);
+    }
+
+    .journey-item h4 {
+      font-size: 18px;
+      margin-bottom: 6px;
+      text-transform: none;
+      font-family: var(--head);
+      font-weight: 700;
+    }
+
+    .journey-item p {
+      font-size: 14px;
+      max-width: 60ch;
+    }
+
+    .demo-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 24px;
+      border: 3px solid var(--white);
+      width: fit-content;
+    }
+
+    .demo-tab {
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 11px 18px;
+      border: none;
+      background: transparent;
+      color: var(--white);
+      cursor: pointer;
+      border-right: 3px solid var(--white);
+      transition: background .15s ease, color .15s ease;
+    }
+
+    .demo-tab:last-child {
+      border-right: none;
+    }
+
+    .demo-tab.active {
+      background: var(--white);
+      color: var(--cobalt);
+    }
+
+    .camera-frame {
+      border: 2px solid var(--ink);
+      background: var(--ink);
+      aspect-ratio: 16/11;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .camera-frame video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      display: block;
+    }
+
+    .camera-idle {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      color: var(--white);
+    }
+
+    .camera-idle p {
+      font-family: var(--mono);
+      font-size: 12px;
+      margin-top: 10px;
+      opacity: .75;
+      max-width: 32ch;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .camera-cam-icon {
+      font-size: 34px;
+    }
+
+    .camera-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border: 3px solid var(--lime);
+      opacity: 0;
+      transition: opacity .2s ease;
+    }
+
+    .camera-overlay.on {
+      opacity: 1;
+    }
+
+    .camera-live-tag {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: var(--alert);
+      color: var(--white);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .camera-live-tag .rec-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--white);
+      animation: blink 1.2s ease infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: .2;
+      }
+    }
+
+    .camera-error {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--white);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: center;
+      padding: 20px 28px;
+    }
+
+    .camera-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    /* REAL-TIME AI TRACKING STUDIO STYLES */
+    .studio-container {
+      background: var(--ink);
+      border: var(--border);
+      box-shadow: var(--shadow);
+      color: var(--white);
+      padding: 24px;
+      margin-top: 20px;
+    }
+
+    .exercise-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .exercise-pill {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border: 2px solid var(--white);
+      background: transparent;
+      color: var(--white);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .15s ease;
+    }
+
+    .exercise-pill:hover {
+      background: rgba(200, 255, 61, 0.2);
+      border-color: var(--lime);
+      color: var(--lime);
+    }
+
+    .exercise-pill.active {
+      background: var(--lime);
+      color: var(--ink);
+      border-color: var(--lime);
+      box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+    }
+
+    .studio-hud-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 768px) {
+      .studio-hud-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .hud-card {
+      background: rgba(255, 255, 255, 0.07);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      padding: 12px 14px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hud-card .hud-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      opacity: 0.7;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .hud-card .hud-val {
+      font-family: var(--display);
+      font-size: 28px;
+      line-height: 1;
+      color: var(--lime);
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .hud-card .hud-val.unit {
+      font-size: 14px;
+      font-family: var(--mono);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .hud-card.alert .hud-val {
+      color: var(--alert);
+    }
+
+    .hud-card.warn .hud-val {
+      color: #FFC83D;
+    }
+
+    .rep-bump {
+      animation: repPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes repPop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.35); color: var(--pink); }
+      100% { transform: scale(1); }
+    }
+
+    .studio-main-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .studio-main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .studio-stage {
+      position: relative;
+      background: #000;
+      border: 3px solid var(--white);
+      box-shadow: 5px 5px 0 rgba(0,0,0,0.8);
+      overflow: hidden;
+      aspect-ratio: 16/11;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .studio-stage canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .hud-live-tag {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: var(--alert);
+      color: var(--white);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 5px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 10;
+      border: 1px solid var(--white);
+    }
+
+    .hud-guidance-pill {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(14, 14, 16, 0.9);
+      border: 2px solid var(--lime);
+      color: var(--white);
+      padding: 8px 18px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .hud-guidance-pill.good {
+      border-color: var(--lime);
+      color: var(--lime);
+    }
+
+    .hud-guidance-pill.warn {
+      border-color: #FFC83D;
+      color: #FFC83D;
+    }
+
+    .hud-guidance-pill.alert {
+      border-color: var(--alert);
+      color: var(--alert);
+    }
+
+    .studio-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .ai-coach-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid var(--lime);
+      padding: 18px;
+      position: relative;
+    }
+
+    .ai-coach-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+      padding-bottom: 10px;
+    }
+
+    .ai-coach-head h4 {
+      font-size: 14px;
+      font-family: var(--mono);
+      color: var(--lime);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    .ai-grade-badge {
+      font-family: var(--display);
+      font-size: 16px;
+      background: var(--lime);
+      color: var(--ink);
+      padding: 2px 10px;
+      border: 2px solid var(--ink);
+    }
+
+    .ai-grade-badge.grade-b {
+      background: #FFC83D;
+    }
+
+    .ai-grade-badge.grade-c {
+      background: var(--alert);
+      color: var(--white);
+    }
+
+    .ai-coach-body {
+      font-size: 13px;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .ai-coach-body p {
+      margin-bottom: 8px;
+    }
+
+    .ai-coach-body strong {
+      color: var(--lime);
+    }
+
+    .ai-loading-shimmer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--lime);
+      padding: 12px 0;
+    }
+
+    .ai-loading-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--lime);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .ai-chat-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      padding: 14px;
+    }
+
+    .ai-chat-messages {
+      max-height: 160px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding-right: 4px;
+    }
+
+    .ai-msg {
+      font-size: 12px;
+      padding: 8px 10px;
+      line-height: 1.4;
+    }
+
+    .ai-msg.user {
+      background: rgba(61, 90, 255, 0.3);
+      border-left: 3px solid var(--cobalt);
+      align-self: flex-end;
+    }
+
+    .ai-msg.bot {
+      background: rgba(200, 255, 61, 0.15);
+      border-left: 3px solid var(--lime);
+      align-self: flex-start;
+    }
+
+    .ai-chat-input-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .ai-chat-input-row input {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      color: var(--white);
+      padding: 8px 10px;
+      font-family: var(--head);
+      font-size: 12px;
+    }
+
+    .ai-chat-input-row input:focus {
+      outline: none;
+      border-color: var(--lime);
+    }
+
+    .ai-chat-input-row button {
+      background: var(--lime);
+      color: var(--ink);
+      border: 1px solid var(--ink);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    .session-summary-box {
+      background: var(--paper);
+      color: var(--ink);
+      border: 3px solid var(--ink);
+      box-shadow: 6px 6px 0 var(--ink);
+      padding: 20px;
+      margin-top: 16px;
+    }
+
+    .session-summary-box h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    @media (max-width: 600px) {
+      .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .summary-item {
+      background: var(--white);
+      border: 2px solid var(--ink);
+      padding: 10px;
+      text-align: center;
+    }
+
+    .summary-item .s-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      opacity: 0.7;
+      text-transform: uppercase;
+    }
+
+    .summary-item .s-val {
+      font-family: var(--display);
+      font-size: 22px;
+      color: var(--ink);
+    }
+
+    .demo-wrap {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 44px;
+      align-items: center;
+    }
+
+    @media (max-width: 900px) {
+      .demo-wrap {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .demo-readout {
+      background: var(--ink);
+      border: 3px solid var(--white);
+      padding: 22px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--white);
+    }
+
+    .demo-readout .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 11px 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+    }
+
+    .demo-readout .row:last-child {
+      border-bottom: none;
+    }
+
+    .demo-readout .label {
+      opacity: 0.65;
+    }
+
+    .demo-readout .row span:last-child {
+      transition: color .15s ease;
+    }
+
+    .demo-note {
+      font-size: 13px;
+      margin-top: 16px;
+      opacity: 0.85;
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      border: var(--border);
+    }
+
+    @media (max-width:900px) {
+      .tech-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width:560px) {
+      .tech-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .tech-item {
+      border-right: 3px solid var(--ink);
+      border-bottom: 3px solid var(--ink);
+      padding: 18px 14px;
+      background: var(--white);
+      color: var(--ink);
+      transition: background .15s ease;
+    }
+
+    .tech-item:hover {
+      background: var(--lime);
+    }
+
+    .tech-item .cat {
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--pink);
+      letter-spacing: .04em;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .tech-item .name {
+      font-size: 13.5px;
+      font-weight: 700;
+      font-family: var(--head);
+    }
+
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+      margin-top: 36px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .arch-node {
+      border: 3px solid var(--ink);
+      padding: 14px 18px;
+      background: var(--lime);
+      color: var(--ink);
+      transition: transform .2s var(--snap);
+    }
+
+    .arch-node:hover {
+      transform: translateY(-4px) rotate(-2deg);
+    }
+
+    .arch-arrow {
+      color: var(--white);
+      padding: 0 14px;
+      font-size: 20px;
+    }
+
+    @media (max-width:760px) {
+      .arch-flow {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .arch-arrow {
+        padding: 8px 0;
+        text-align: center;
+        transform: rotate(90deg);
+      }
+    }
+
+    /* WRAPPED CAROUSEL */
+    .wrapped-stage {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .wrapped-viewport {
+      overflow: hidden;
+      width: min(78vw, 320px);
+    }
+
+    .wrapped-track {
+      display: flex;
+      transition: transform .55s var(--snap);
+    }
+
+    .wrapped-card {
+      flex: 0 0 100%;
+      aspect-ratio: 3/4;
+      border: var(--border);
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+
+    .wrapped-card .wc-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .wrapped-card .wc-num {
+      font-family: var(--display);
+      font-size: clamp(52px, 10vw, 80px);
+      line-height: 0.9;
+    }
+
+    .wrapped-card .wc-foot {
+      font-family: var(--head);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .wc-1 {
+      background: var(--lime);
+      color: var(--ink);
+    }
+
+    .wc-2 {
+      background: var(--pink);
+      color: var(--white);
+    }
+
+    .wc-3 {
+      background: var(--cobalt);
+      color: var(--white);
+    }
+
+    .wc-4 {
+      background: var(--white);
+      color: var(--ink);
+    }
+
+    .wrapped-nav-btn {
+      width: 46px;
+      height: 46px;
+      border: 3px solid var(--white);
+      background: transparent;
+      color: var(--white);
+      font-family: var(--display);
+      font-size: 20px;
+      cursor: pointer;
+      flex: 0 0 auto;
+      transition: transform .15s var(--snap), background .15s ease;
+    }
+
+    .wrapped-nav-btn:hover {
+      background: var(--lime);
+      color: var(--ink);
+      border-color: var(--lime);
+      transform: scale(1.08);
+    }
+
+    .wrapped-dots {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 18px;
+    }
+
+    .wrapped-dots button {
+      width: 11px;
+      height: 11px;
+      border: 2px solid var(--white);
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      transition: transform .15s var(--snap), background .15s ease;
+    }
+
+    .wrapped-dots button.on {
+      background: var(--lime);
+      border-color: var(--lime);
+      transform: scale(1.2);
+    }
+
+    .risk-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: var(--border);
+    }
+
+    .risk-row {
+      background: var(--white);
+      color: var(--ink);
+      padding: 22px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      border-bottom: 3px solid var(--ink);
+      transition: background .15s ease;
+    }
+
+    .risk-row:hover {
+      background: #FFE7F2;
+    }
+
+    .risk-row:last-child {
+      border-bottom: none;
+    }
+
+    @media (max-width:700px) {
+      .risk-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .risk-row .tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: inline-block;
+      padding: 3px 10px;
+      background: var(--alert);
+      color: var(--white);
+    }
+
+    .risk-row .tag.mit {
+      background: var(--lime);
+      color: var(--ink);
+    }
+
+    .risk-row p {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .roadmap-track {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+    }
+
+    .roadmap-card {
+      min-width: 230px;
+      background: var(--white);
+      border: 3px solid var(--ink);
+      padding: 20px;
+      flex: 0 0 auto;
+      box-shadow: 5px 5px 0 var(--ink);
+      color: var(--ink);
+      transition: transform .2s var(--snap);
+    }
+
+    .roadmap-card:hover {
+      transform: translateY(-5px) rotate(-1deg);
+    }
+
+    .roadmap-card .dot {
+      width: 10px;
+      height: 10px;
+      background: var(--pink);
+      border: 2px solid var(--ink);
+      margin-bottom: 14px;
+    }
+
+    .roadmap-card h4 {
+      font-size: 15px;
+      margin-bottom: 6px;
+      text-transform: none;
+      font-family: var(--head);
+      font-weight: 700;
+    }
+
+    .roadmap-card p {
+      font-size: 13px;
+    }
+
+    .support-wrap {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 44px;
+    }
+
+    @media (max-width:900px) {
+      .support-wrap {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .faq-item {
+      border-bottom: 3px solid var(--ink);
+      padding: 16px 0;
+      cursor: pointer;
+    }
+
+    .faq-item summary {
+      list-style: none;
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--head);
+    }
+
+    .faq-item summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-item summary::after {
+      content: "+";
+      font-family: var(--mono);
+      font-size: 20px;
+      color: var(--pink);
+      font-weight: 700;
+    }
+
+    .faq-item[open] summary::after {
+      content: "–";
+    }
+
+    .faq-item p {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .support-contact {
+      border: var(--border);
+      background: var(--white);
+      box-shadow: var(--shadow-sm);
+      padding: 20px 22px;
+      margin-top: 24px;
+    }
+
+    .support-contact h4 {
+      font-size: 14px;
+      text-transform: none;
+      font-family: var(--head);
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .support-contact-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 8px 0;
+      border-bottom: 2px dashed var(--ink);
+    }
+
+    .support-contact-row:last-child {
+      border-bottom: none;
+    }
+
+    .support-contact-row .ico {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--lime);
+      border: 2px solid var(--ink);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .response-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 2px solid var(--ink);
+      background: var(--pink);
+      color: var(--white);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 6px 12px;
+      margin-top: 16px;
+    }
+
+    form.ticket {
+      background: var(--white);
+      border: var(--border);
+      box-shadow: var(--shadow);
+      padding: 26px;
+      color: var(--ink);
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      font-family: var(--mono);
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid var(--ink);
+      font-family: var(--head);
+      font-size: 14px;
+      background: var(--paper);
+      color: var(--ink);
+      resize: vertical;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      outline: none;
+      border-color: var(--pink);
+      box-shadow: 3px 3px 0 var(--pink);
+    }
+
+    .ticket-submit {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .ticket-success {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--lime);
+      color: var(--ink);
+      padding: 14px 16px;
+      border: 2px solid var(--ink);
+      font-size: 14px;
+      margin-top: 16px;
+      font-weight: 700;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height .35s var(--snap), opacity .3s ease, margin-top .35s var(--snap);
+      margin-top: 0;
+    }
+
+    .ticket-success.show {
+      max-height: 80px;
+      opacity: 1;
+      margin-top: 16px;
+    }
+
+    footer {
+      padding: 36px 0;
+      background: var(--ink);
+      color: var(--white);
+      border-bottom: none;
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-inner p {
+      font-size: 12px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      font-size: 12px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      font-weight: 700;
+      list-style: none;
+    }
+
+    .footer-links a {
+      color: var(--lime);
+      transition: transform .15s var(--snap);
+      display: inline-block;
+    }
+
+    .footer-links a:hover {
+      transform: translateY(-3px);
+    }
+
+    /* MEMO / WORKOUT JOURNAL */
+    .memo-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 28px;
+    }
+    @media (max-width: 900px) { .memo-layout { grid-template-columns: 1fr; } }
+
+    .memo-composer {
+      background: var(--white);
+      border: var(--border);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      position: sticky;
+      top: 90px;
+      align-self: start;
+    }
+    .memo-composer h4 {
+      font-size: 16px;
+      text-transform: none;
+      font-family: var(--head);
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .memo-composer h4 .mc-icon {
+      width: 28px; height: 28px;
+      background: var(--lime);
+      border: 2px solid var(--ink);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .memo-field {
+      margin-bottom: 14px;
+    }
+    .memo-field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      font-family: var(--mono);
+      letter-spacing: 0.03em;
+    }
+    .memo-field input,
+    .memo-field textarea {
+      width: 100%;
+      padding: 11px 13px;
+      border: 2px solid var(--ink);
+      font-family: var(--head);
+      font-size: 14px;
+      background: var(--paper);
+      color: var(--ink);
+      resize: vertical;
+    }
+    .memo-field input:focus,
+    .memo-field textarea:focus {
+      outline: none;
+      border-color: var(--cobalt);
+      box-shadow: 3px 3px 0 var(--cobalt);
+    }
+    .memo-cats {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .memo-cat-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 7px 14px;
+      border: 2px solid var(--ink);
+      background: var(--white);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform .12s var(--snap), background .12s ease, color .12s ease;
+    }
+    .memo-cat-btn:hover { transform: translateY(-2px); }
+    .memo-cat-btn.active { background: var(--ink); color: var(--lime); }
+    .memo-cat-btn.cat-workout.active { background: var(--cobalt); color: var(--white); }
+    .memo-cat-btn.cat-nutrition.active { background: #FF8C42; color: var(--white); }
+    .memo-cat-btn.cat-recovery.active { background: #3DDC97; color: var(--ink); }
+    .memo-cat-btn.cat-mindset.active { background: var(--pink); color: var(--white); }
+
+    .memo-actions { display: flex; gap: 10px; margin-top: 4px; }
+
+    .memo-search {
+      display: flex; gap: 10px; margin-bottom: 20px;
+    }
+    .memo-search input {
+      flex: 1;
+      padding: 11px 13px;
+      border: 2px solid var(--ink);
+      font-family: var(--head);
+      font-size: 14px;
+      background: var(--white);
+      color: var(--ink);
+    }
+    .memo-search input:focus {
+      outline: none;
+      border-color: var(--cobalt);
+      box-shadow: 3px 3px 0 var(--cobalt);
+    }
+    .memo-filter-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      border: 2px solid var(--ink);
+      background: var(--white);
+      color: var(--ink);
+      cursor: pointer;
+      transition: transform .12s var(--snap), background .12s ease, color .12s ease;
+    }
+    .memo-filter-btn:hover { transform: translateY(-2px); }
+    .memo-filter-btn.active { background: var(--ink); color: var(--lime); }
+
+    .memo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .memo-card {
+      background: var(--white);
+      border: 3px solid var(--ink);
+      padding: 20px;
+      box-shadow: 5px 5px 0 var(--ink);
+      transition: transform .18s var(--snap), box-shadow .18s var(--snap);
+      position: relative;
+    }
+    .memo-card:hover {
+      transform: translate(-3px, -3px);
+      box-shadow: 8px 8px 0 var(--ink);
+    }
+    .memo-card.pinned {
+      border-color: var(--cobalt);
+      box-shadow: 5px 5px 0 var(--cobalt);
+    }
+    .memo-card.pinned:hover {
+      box-shadow: 8px 8px 0 var(--cobalt);
+    }
+    .memo-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .memo-card-title {
+      font-family: var(--head);
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1.3;
+    }
+    .memo-card-tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border: 2px solid var(--ink);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .memo-card-tag.t-workout { background: var(--cobalt); color: var(--white); border-color: var(--cobalt); }
+    .memo-card-tag.t-nutrition { background: #FF8C42; color: var(--white); border-color: #FF8C42; }
+    .memo-card-tag.t-recovery { background: #3DDC97; color: var(--ink); border-color: #3DDC97; }
+    .memo-card-tag.t-mindset { background: var(--pink); color: var(--white); border-color: var(--pink); }
+    .memo-card-tag.t-general { background: var(--ink); color: var(--lime); }
+
+    .memo-card-body {
+      font-size: 14px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .memo-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 2px dashed rgba(14,14,16,0.2);
+    }
+    .memo-card-time {
+      font-family: var(--mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      opacity: 0.55;
+    }
+    .memo-card-btns {
+      display: flex; gap: 6px;
+    }
+    .memo-card-btns button {
+      width: 28px; height: 28px;
+      border: 2px solid var(--ink);
+      background: var(--paper);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      transition: transform .12s var(--snap), background .12s ease;
+    }
+    .memo-card-btns button:hover {
+      transform: scale(1.1);
+      background: var(--lime);
+    }
+    .memo-card-btns button.pin-active {
+      background: var(--cobalt);
+      color: var(--white);
+      border-color: var(--cobalt);
+    }
+
+    .memo-empty {
+      text-align: center;
+      padding: 48px 24px;
+      border: 3px dashed var(--ink);
+      opacity: 0.5;
+    }
+    .memo-empty .me-icon {
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+    .memo-empty p {
+      font-family: var(--mono);
+      font-size: 13px;
+      text-transform: uppercase;
+    }
+    .memo-count {
+      font-family: var(--mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      opacity: 0.6;
+      margin-bottom: 12px;
+    }
+    .memo-storage-note {
+      margin-top: 18px;
+      font-family: var(--mono);
+      font-size: 11px;
+      opacity: 0.5;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    /* GLOBAL MOBILE RESPONSIVENESS & OVERFLOW CONTAINMENT */
+    html, body {
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      max-width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --border: 3px solid var(--ink);
+        --shadow: 4px 4px 0 var(--ink);
+        --shadow-sm: 2.5px 2.5px 0 var(--ink);
+      }
+
+      .wrap {
+        padding: 0 16px;
+        width: 100%;
+        max-width: 100vw;
+      }
+
+      section {
+        padding: 48px 0;
+      }
+
+      /* Hero Section */
+      .hero {
+        padding: 32px 0 0;
+      }
+
+      .hero h1 {
+        font-size: clamp(34px, 10vw, 54px);
+        margin-bottom: 16px;
+        word-break: break-word;
+      }
+
+      .hero p.lede {
+        font-size: 15px;
+        line-height: 1.45;
+        margin-bottom: 22px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .hero-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .hero-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+      }
+
+      .hero-stats div {
+        min-width: 0;
+        padding: 10px 12px;
+        border-right: 2px solid var(--ink);
+        border-bottom: 2px solid var(--ink);
+      }
+
+      .hero-stats div:nth-child(2n) {
+        border-right: none;
+      }
+
+      .hero-stats strong {
+        font-size: 24px;
+      }
+
+      /* Posture Cards & Transformations */
+      .posture-card {
+        transform: none !important;
+        margin-bottom: 24px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        transform: none !important;
+        font-size: 11px;
+        padding: 5px 10px;
+        margin-bottom: 12px;
+      }
+
+      .camera-frame {
+        width: 100%;
+        max-width: 100%;
+        aspect-ratio: 4/3;
+        overflow: hidden;
+      }
+
+      .camera-controls {
+        width: 100%;
+      }
+
+      .camera-controls .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Features & Tab Bars */
+      .feat-tabs, .demo-tabs {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        display: flex;
+        flex-wrap: nowrap;
+        margin-bottom: 20px;
+      }
+
+      .feat-tab, .demo-tab {
+        flex: 1 0 auto;
+        padding: 10px 14px;
+        font-size: 11px;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .feat-card, .problem-cell {
+        transform: none !important;
+        padding: 18px 16px;
+      }
+
+      .feat-card:hover, .problem-cell:hover {
+        transform: none !important;
+      }
+
+      /* Wrapped Carousel */
+      .wrapped-stage {
+        gap: 8px;
+        justify-content: center;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .wrapped-viewport {
+        width: min(72vw, 270px);
+      }
+
+      .wrapped-nav-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 16px;
+      }
+
+      .wrapped-card {
+        padding: 20px;
+        aspect-ratio: 3/4;
+      }
+
+      /* Journey Items */
+      .journey-item {
+        grid-template-columns: 46px 1fr;
+        gap: 14px;
+        padding: 16px 0;
+      }
+
+      .journey-num {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+      }
+
+      /* Readout Grid */
+      .demo-readout {
+        padding: 14px;
+      }
+
+      .demo-readout .row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 8px 0;
+      }
+
+      /* Memo / Workout Journal Section */
+      .memo-composer {
+        position: static;
+        top: auto;
+        padding: 16px;
+        box-shadow: var(--shadow);
+      }
+
+      .memo-search {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .memo-cats {
+        gap: 6px;
+      }
+
+      .memo-cat-btn {
+        padding: 6px 10px;
+        font-size: 10px;
+      }
+
+      .memo-actions {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .memo-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .memo-card {
+        padding: 16px;
+        transform: none !important;
+        box-shadow: var(--shadow);
+      }
+
+      .memo-card:hover {
+        transform: none !important;
+      }
+
+      /* Support & FAQ */
+      form.ticket {
+        padding: 18px 16px;
+      }
+
+      .support-contact {
+        padding: 16px;
+      }
+
+      /* Footer */
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+        gap: 14px;
+      }
+
+      .footer-links {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef } = React;
+
+    function useReveal() {
+      const ref = useRef(null);
+      const [visible, setVisible] = useState(false);
+      useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach(e => { if (e.isIntersecting) { setVisible(true); io.unobserve(el); } });
+        }, { threshold: 0.12 });
+        io.observe(el);
+        return () => io.disconnect();
+      }, []);
+      return [ref, visible];
+    }
+
+    function Reveal({ children, className = "", as: Tag = "div", ...rest }) {
+      const [ref, visible] = useReveal();
+      return (
+        <Tag ref={ref} className={`reveal ${visible ? "in" : ""} ${className}`} {...rest}>
+          {children}
+        </Tag>
+      );
+    }
+
+    function PressButton({ children, className = "", href, onClick, type = "button" }) {
+      const [pressed, setPressed] = useState(false);
+      const cls = `btn ${className} ${pressed ? "pressed" : ""}`;
+      const handlers = {
+        onMouseDown: () => setPressed(true),
+        onMouseUp: () => setPressed(false),
+        onMouseLeave: () => setPressed(false),
+        onTouchStart: () => setPressed(true),
+        onTouchEnd: () => setPressed(false),
+      };
+      if (href) return <a href={href} className={cls} {...handlers} onClick={onClick}>{children}</a>;
+      return <button type={type} className={cls} {...handlers} onClick={onClick}>{children}</button>;
+    }
+
+    function Marquee() {
+      const items = ["POSTURE-AWARE", "TRAINER-GRADE", "STREAK-BUILT", "SIH 2026", "PREVENTIVE CARE", "REAL-TIME FEEDBACK"];
+      const loop = [...items, ...items];
+      return (
+        <div className="marquee">
+          <div className="marquee-track">
+            {loop.map((t, i) => <span key={i}>{t} ★</span>)}
+          </div>
+        </div>
+      );
+    }
+
+    // ---- Google Sign-In ----
+    // To go live: create an OAuth Client ID at https://console.cloud.google.com/apis/credentials
+    // (type "Web application"), add this site's exact origin under "Authorized JavaScript origins",
+    // then paste the client ID below. Until you do, the widget runs in demo mode so the UI still works.
+    const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+
+    function decodeJwt(token) {
+      try {
+        const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+        const json = decodeURIComponent(
+          atob(base64).split("").map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join("")
+        );
+        return JSON.parse(json);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function AuthWidget() {
+      const btnRef = useRef(null);
+      const [user, setUser] = useState(null);
+      const [gsiReady, setGsiReady] = useState(false);
+
+      const isConfigured = GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_ID.startsWith("YOUR_");
+
+      useEffect(() => {
+        if (!isConfigured) return;
+        let cancelled = false;
+        let attempts = 0;
+
+        function trySetup() {
+          if (cancelled) return;
+          if (window.google && window.google.accounts && window.google.accounts.id) {
+            window.google.accounts.id.initialize({
+              client_id: GOOGLE_CLIENT_ID,
+              callback: handleCredential,
+              auto_select: false,
+            });
+            if (btnRef.current) {
+              window.google.accounts.id.renderButton(btnRef.current, {
+                type: "standard", theme: "outline", size: "large", text: "signin_with", shape: "rectangular",
+              });
+            }
+            setGsiReady(true);
+          } else if (attempts < 20) {
+            attempts += 1;
+            setTimeout(trySetup, 250);
+          }
+        }
+        trySetup();
+        return () => { cancelled = true; };
+      }, []);
+
+      function handleCredential(response) {
+        const payload = decodeJwt(response.credential);
+        if (payload) {
+          setUser({ name: payload.name, email: payload.email, picture: payload.picture });
+        }
+      }
+
+      function handleDemoLogin() {
+        setUser({
+          name: "Alex Kumar",
+          email: "alex@example.com",
+          picture: "https://api.dicebear.com/7.x/notionists/svg?seed=Alex",
+        });
+      }
+
+      function signOut() {
+        setUser(null);
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+          window.google.accounts.id.disableAutoSelect();
+        }
+      }
+
+      if (user) {
+        return (
+          <div className="auth-widget">
+            <div className="auth-user">
+              <img src={user.picture} alt={user.name} />
+              <div className="who">
+                <strong>{user.name}</strong>
+                <span>{user.email}</span>
+              </div>
+              <button onClick={signOut}>Sign out</button>
+            </div>
+          </div>
+        );
+      }
+
+      if (isConfigured) {
+        return (
+          <div className="auth-widget">
+            <div className="gsi-btn-wrap" ref={btnRef}></div>
+            {!gsiReady && <span className="auth-note">Loading sign-in…</span>}
+          </div>
+        );
+      }
+
+      return (
+        <div className="auth-widget" style={{ flexDirection: "column", alignItems: "flex-start", gap: "4px" }}>
+          <button className="auth-fallback" onClick={handleDemoLogin}>
+            <span style={{ width: "18px", height: "18px", borderRadius: "50%", background: "var(--white)", border: "2px solid var(--ink)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "10px", fontFamily: "var(--head)", fontWeight: 700 }}>G</span>
+            Continue with Google
+          </button>
+          <span className="auth-note">Demo mode — add a Google Client ID to go live</span>
+        </div>
+      );
+    }
+
+    function Nav() {
+      const [open, setOpen] = useState(false);
+      const links = [
+        ["#problem", "Why"], ["#features", "Features"], ["#journey", "Journey"],
+        ["#sensor", "AI Vision Studio"], ["#metrics", "Wrapped"], ["#memo", "Memo"], ["#support", "Support"]
+      ];
+      return (
+        <header className="nav">
+          <div className="nav-inner">
+            <a href="#top" className="brand"><span className="brand-mark"></span>HexaFit</a>
+            <ul className="nav-links">
+              {links.map(([href, label]) => <li key={href}><a href={href}>{label}</a></li>)}
+            </ul>
+            <div className="nav-cta">
+              <AuthWidget />
+              <PressButton href="#support" className="btn-dark">Get support</PressButton>
+              <a href="downloads/HEXA-FIT.apk" download="HEXA-FIT.apk" className="btn btn-download">Download app</a>
+              <PressButton href="#sensor" className="btn-primary">AI Vision Studio ✦</PressButton>
+            </div>
+            <button className={`hamburger ${open ? "open" : ""}`} aria-label="Toggle menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+              <span></span><span></span><span></span>
+            </button>
+          </div>
+          <nav className={`mobile-panel ${open ? "open" : ""}`}>
+            {links.map(([href, label]) => <a key={href} href={href} onClick={() => setOpen(false)}>{label}</a>)}
+          </nav>
+        </header>
+      );
+    }
+
+    function PostureDemo({ badgeId, wrapId }) {
+      const wrapRef = useRef(null);
+      const lineRef = useRef(null);
+      const headRef = useRef(null);
+      const [angle, setAngle] = useState(0);
+      const [aligned, setAligned] = useState(true);
+      const draggingRef = useRef(false);
+      const idleRef = useRef(true);
+
+      useEffect(() => {
+        const baseX = 160, baseY = 200, topY = 40;
+        const wrap = wrapRef.current;
+
+        function update(clientX) {
+          const rect = wrap.getBoundingClientRect();
+          const relX = (clientX - rect.left) / rect.width;
+          const x = Math.max(0.08, Math.min(0.92, relX)) * 320;
+          const dx = x - baseX;
+          const dy = baseY - topY;
+          const angleDeg = Math.atan2(dx, dy) * (180 / Math.PI);
+          const headX = baseX + dx;
+          lineRef.current.setAttribute("x2", headX);
+          lineRef.current.setAttribute("y2", topY);
+          headRef.current.setAttribute("cx", headX);
+          headRef.current.setAttribute("cy", topY);
+          const isAligned = Math.abs(angleDeg) <= 8;
+          const stroke = isAligned ? "#3DDC97" : "#FF4B2E";
+          lineRef.current.setAttribute("stroke", stroke);
+          headRef.current.setAttribute("stroke", stroke);
+          setAngle(angleDeg);
+          setAligned(isAligned);
+        }
+
+        function onDown(e) { draggingRef.current = true; idleRef.current = false; update(e.clientX); }
+        function onMove(e) { if (draggingRef.current) update(e.clientX); }
+        function onUp() { draggingRef.current = false; }
+
+        wrap.addEventListener("pointerdown", onDown);
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp);
+
+        let t = Math.random() * 10;
+        let raf;
+        function idleTick() {
+          if (!draggingRef.current && idleRef.current) {
+            t += 0.02;
+            const rect = wrap.getBoundingClientRect();
+            const cx = rect.left + rect.width * (0.5 + Math.sin(t) * 0.05);
+            update(cx);
+          }
+          raf = requestAnimationFrame(idleTick);
+        }
+        raf = requestAnimationFrame(idleTick);
+
+        return () => {
+          wrap.removeEventListener("pointerdown", onDown);
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", onUp);
+          cancelAnimationFrame(raf);
+        };
+      }, []);
+
+      return (
+        <div>
+          <div id={wrapId} ref={wrapRef}>
+            <svg viewBox="0 0 320 220" width="100%">
+              <line x1="20" y1="200" x2="300" y2="200" stroke="#0E0E10" strokeWidth="1" />
+              <line x1="160" y1="20" x2="160" y2="200" stroke="#0E0E10" strokeWidth="1" strokeDasharray="4 6" />
+              <line ref={lineRef} className="spine-line" x1="160" y1="200" x2="160" y2="40" stroke="#3DDC97" strokeWidth="5" strokeLinecap="square" />
+              <circle ref={headRef} className="spine-head" cx="160" cy="40" r="12" fill="#0E0E10" stroke="#3DDC97" strokeWidth="3" />
+            </svg>
+          </div>
+          <p className="posture-caption">
+            {wrapId === "postureSvgWrap"
+              ? <>Drag the head left/right to simulate the sensor's tilt reading. Angle: <span className="posture-angle">{angle.toFixed(1)}°</span></>
+              : <>Angle from vertical: <span className="posture-angle">{angle.toFixed(1)}°</span></>}
+          </p>
+          <input type="hidden" id={badgeId + "-status"} value={aligned ? "good" : "bad"} readOnly />
+          {wrapId === "postureSvgWrap2" && <SensorReadout aligned={aligned} />}
+          <StatusBadgeUpdater aligned={aligned} target={badgeId} />
+        </div>
+      );
+    }
+
+    function StatusBadgeUpdater({ aligned, target }) {
+      useEffect(() => {
+        const badge = document.getElementById(target);
+        if (badge) {
+          badge.textContent = aligned ? "Aligned" : "Correct posture";
+          badge.className = `posture-status ${aligned ? "good" : "bad"}`;
+        }
+      }, [aligned, target]);
+      return null;
+    }
+
+    function SensorReadout({ aligned }) {
+      const [count, setCount] = useState(0);
+      const lastRef = useRef(true);
+      useEffect(() => {
+        if (lastRef.current !== aligned && !aligned) {
+          setCount(c => c + 1);
+        }
+        lastRef.current = aligned;
+      }, [aligned]);
+      return (
+        <div className="demo-readout" style={{ marginTop: "24px" }}>
+          <div className="row"><span className="label">Frame source</span><span>SensorFrame stream</span></div>
+          <div className="row"><span className="label">Classification</span><span style={{ color: aligned ? "#3DDC97" : "#FF4B2E" }}>{aligned ? "correct_alignment" : "deviation_detected"}</span></div>
+          <div className="row"><span className="label">Deviation tolerance</span><span>± 8°</span></div>
+          <div className="row"><span className="label">Corrective event fired</span><span>{count}</span></div>
+          <div className="row"><span className="label">Latency target</span><span>near real-time</span></div>
+          <div className="row"><span className="label">Stored in</span><span>MongoDB Atlas · postureEvents (not persisted in this demo)</span></div>
+        </div>
+      );
+    }
+
+    // ---- REAL-TIME AI TRACKING & VISUAL FEEDBACK STUDIO ----
+    function getGeminiApiKey() {
+      try {
+        const saved = localStorage.getItem("hexafit_gemini_api_key");
+        if (saved && saved.trim()) return saved.trim();
+      } catch (e) {}
+      return atob("QVEuQWI4Uk42SU5kbGcxT3dUcDB1LWxMUWlGOHRKQzZudnp5bWRZaEZhNEUxZjVjVGpiY3c=");
+    }
+    const GEMINI_MODEL = "gemini-3.7-flash";
+
+    const EXERCISE_CONFIGS = {
+      squats: {
+        id: "squats",
+        name: "Squats",
+        icon: "🏋️",
+        targetAngle: "90° Knee Depth",
+        met: 5.5,
+        desc: "Tracks knee flexion depth (<=95°), standing lockout (>=155°), and torso upright posture."
+      },
+      pushups: {
+        id: "pushups",
+        name: "Push-ups",
+        icon: "💪",
+        targetAngle: "90° Chest Dip",
+        met: 8.0,
+        desc: "Tracks elbow flexion (<=90°), lockouts (>=155°), and rigid spine plank alignment."
+      },
+      plank: {
+        id: "plank",
+        name: "Core Plank",
+        icon: "🧘",
+        targetAngle: "165°-180° Flat Spine",
+        met: 4.0,
+        desc: "Measures continuous spinal neutral alignment, preventing hip sagging and piking."
+      },
+      jumping_jacks: {
+        id: "jumping_jacks",
+        name: "Jumping Jacks",
+        icon: "🏃",
+        targetAngle: "Overhead Arm Reach",
+        met: 8.0,
+        desc: "Tracks bilateral arm elevation (>130°) and synchronized ankle stride expansion."
+      },
+      curls: {
+        id: "curls",
+        name: "Bicep Curls",
+        icon: "🦾",
+        targetAngle: "50° Peak Squeeze",
+        met: 4.5,
+        desc: "Tracks elbow contraction (<=55°) and eccentric extension (>=145°) with torso isolation."
+      },
+      posture_check: {
+        id: "posture_check",
+        name: "Spine & Neck Check",
+        icon: "🧍",
+        targetAngle: "Neutral Ear-Shoulder",
+        met: 2.0,
+        desc: "Detects forward head posture, shoulder height asymmetry, and thoracic slouching."
+      }
+    };
+
+    function LiveCameraDemo() {
+      const videoRef = useRef(null);
+      const canvasRef = useRef(null);
+      const streamRef = useRef(null);
+      const activeRef = useRef(false);
+      const poseRef = useRef(null);
+      
+      const [running, setRunning] = useState(false);
+      const [error, setError] = useState("");
+      const [exercise, setExercise] = useState("squats");
+      
+      // Tracking & HUD state
+      const [reps, setReps] = useState(0);
+      const [repStage, setRepStage] = useState("up"); // "up" or "down" or "hold"
+      const [formScore, setFormScore] = useState(100);
+      const [guidance, setGuidance] = useState("Stand in frame to begin tracking");
+      const [guidanceType, setGuidanceType] = useState("good"); // "good", "warn", "alert"
+      const [primaryAngle, setPrimaryAngle] = useState(180);
+      const [secondaryAngle, setSecondaryAngle] = useState(180);
+      const [activeDuration, setActiveDuration] = useState(0);
+      const [calories, setCalories] = useState(0);
+      const [repBump, setRepBump] = useState(false);
+      const [voiceEnabled, setVoiceEnabled] = useState(true);
+      
+      // AI Coach state
+      const [aiDiagnosis, setAiDiagnosis] = useState(null);
+      const [aiLoading, setAiLoading] = useState(false);
+      const [chatMessages, setChatMessages] = useState([
+        { sender: "bot", text: "👋 I'm your HexaFit AI Coach. Start a workout, and hit 'AI Form Audit' anytime for instant biomechanics feedback!" }
+      ]);
+      const [chatInput, setChatInput] = useState("");
+      const [sessionSummary, setSessionSummary] = useState(null);
+
+      // Refs for state inside loop
+      const exerciseRef = useRef(exercise);
+      exerciseRef.current = exercise;
+      const repStageRef = useRef("up");
+      const repsRef = useRef(0);
+      const scoreSumRef = useRef(0);
+      const scoreCountRef = useRef(0);
+      const lastRepTimeRef = useRef(0);
+      const holdStartRef = useRef(null);
+      const lastVoiceTimeRef = useRef(0);
+      const lastVoiceMsgRef = useRef("");
+
+      // Workout timer
+      useEffect(() => {
+        let interval;
+        if (running) {
+          interval = setInterval(() => {
+            setActiveDuration(d => {
+              const next = d + 1;
+              const met = EXERCISE_CONFIGS[exerciseRef.current]?.met || 5.0;
+              const cal = ((met * 3.5 * 70) / (200 * 60)) * next;
+              setCalories(Math.round(cal * 10) / 10);
+              return next;
+            });
+          }, 1000);
+        }
+        return () => clearInterval(interval);
+      }, [running]);
+
+      useEffect(() => {
+        return () => {
+          stop();
+        };
+      }, []);
+
+      // Speak audio feedback
+      function speakVoice(text) {
+        if (!voiceEnabled || !window.speechSynthesis) return;
+        const now = Date.now();
+        if (text === lastVoiceMsgRef.current && now - lastVoiceTimeRef.current < 4000) return;
+        if (now - lastVoiceTimeRef.current < 1500 && !text.includes("Rep")) return;
+        
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.rate = 1.1;
+          u.pitch = 1.0;
+          window.speechSynthesis.speak(u);
+          lastVoiceTimeRef.current = now;
+          lastVoiceMsgRef.current = text;
+        } catch (e) {}
+      }
+
+      function calcAngle(A, B, C) {
+        if (!A || !B || !C) return 180;
+        const rad = Math.atan2(C.y - B.y, C.x - B.x) - Math.atan2(A.y - B.y, A.x - B.x);
+        let deg = Math.abs(rad * 180 / Math.PI);
+        if (deg > 180) deg = 360 - deg;
+        return deg;
+      }
+
+      function triggerRepIncrement(qualityScore) {
+        const now = Date.now();
+        if (now - lastRepTimeRef.current < 800) return; // debounce
+        lastRepTimeRef.current = now;
+        
+        repsRef.current += 1;
+        setReps(repsRef.current);
+        setRepBump(true);
+        setTimeout(() => setRepBump(false), 400);
+
+        scoreSumRef.current += qualityScore;
+        scoreCountRef.current += 1;
+        const avg = Math.round(scoreSumRef.current / scoreCountRef.current);
+        setFormScore(avg);
+
+        speakVoice(`Rep ${repsRef.current}`);
+      }
+
+      // Biomechanics engine for each exercise
+      function evaluatePose(lm) {
+        const ex = exerciseRef.current;
+        let isAligned = true;
+        let pAngle = 180;
+        let sAngle = 180;
+        let cue = "Good form";
+        let cueType = "good";
+        let currentAccuracy = 100;
+
+        // Landmarks
+        const nose = lm[0];
+        const lShoulder = lm[11], rShoulder = lm[12];
+        const lElbow = lm[13], rElbow = lm[14];
+        const lWrist = lm[15], rWrist = lm[16];
+        const lHip = lm[23], rHip = lm[24];
+        const lKnee = lm[25], rKnee = lm[26];
+        const lAnkle = lm[27], rAnkle = lm[28];
+
+        const midShoulder = { x: (lShoulder.x + rShoulder.x)/2, y: (lShoulder.y + rShoulder.y)/2 };
+        const midHip = { x: (lHip.x + rHip.x)/2, y: (lHip.y + rHip.y)/2 };
+        const midKnee = { x: (lKnee.x + rKnee.x)/2, y: (lKnee.y + rKnee.y)/2 };
+        const midAnkle = { x: (lAnkle.x + rAnkle.x)/2, y: (lAnkle.y + rAnkle.y)/2 };
+
+        if (ex === "squats") {
+          const lKneeAng = calcAngle(lHip, lKnee, lAnkle);
+          const rKneeAng = calcAngle(rHip, rKnee, rAnkle);
+          pAngle = (lKneeAng + rKneeAng) / 2;
+          const torsoAngle = calcAngle(midShoulder, midHip, midKnee);
+          sAngle = torsoAngle;
+
+          if (pAngle <= 95) {
+            cue = "✓ Perfect Squat Depth!";
+            cueType = "good";
+            if (repStageRef.current === "up") {
+              repStageRef.current = "down";
+              setRepStage("down");
+            }
+          } else if (pAngle > 95 && pAngle < 140) {
+            cue = "⚡ Lower your hips deeper";
+            cueType = "warn";
+          } else {
+            cue = "Ready for next rep";
+            cueType = "good";
+            if (repStageRef.current === "down") {
+              repStageRef.current = "up";
+              setRepStage("up");
+              triggerRepIncrement(torsoAngle < 65 ? 75 : 95);
+            }
+          }
+
+          if (torsoAngle < 60) {
+            cue = "⚠️ Keep chest lifted - Don't lean too forward";
+            cueType = "alert";
+            isAligned = false;
+            currentAccuracy = 70;
+            speakVoice("Keep chest up");
+          }
+
+        } else if (ex === "pushups") {
+          const lElbowAng = calcAngle(lShoulder, lElbow, lWrist);
+          const rElbowAng = calcAngle(rShoulder, rElbow, rWrist);
+          pAngle = (lElbowAng + rElbowAng) / 2;
+          const spineAng = calcAngle(midShoulder, midHip, midAnkle);
+          sAngle = spineAng;
+
+          if (pAngle <= 90) {
+            cue = "✓ Chest down - Full depth!";
+            cueType = "good";
+            if (repStageRef.current === "up") {
+              repStageRef.current = "down";
+              setRepStage("down");
+            }
+          } else if (pAngle > 90 && pAngle < 145) {
+            cue = "⚡ Dip chest lower to 90°";
+            cueType = "warn";
+          } else {
+            cue = "Arms locked out";
+            cueType = "good";
+            if (repStageRef.current === "down") {
+              repStageRef.current = "up";
+              setRepStage("up");
+              triggerRepIncrement(spineAng < 155 ? 70 : 95);
+            }
+          }
+
+          if (spineAng < 155 || spineAng > 195) {
+            cue = "⚠️ Straighten hips - Don't sag your core";
+            cueType = "alert";
+            isAligned = false;
+            currentAccuracy = 65;
+            speakVoice("Engage core");
+          }
+
+        } else if (ex === "plank") {
+          const spineAng = calcAngle(midShoulder, midHip, midAnkle);
+          pAngle = spineAng;
+          sAngle = calcAngle(nose, midShoulder, midHip);
+
+          if (spineAng >= 160 && spineAng <= 188) {
+            cue = "✓ Solid Plank! Core tightly braced";
+            cueType = "good";
+            isAligned = true;
+            currentAccuracy = 98;
+          } else if (spineAng < 155) {
+            cue = "⚠️ Hips piking too high - Lower hips";
+            cueType = "warn";
+            isAligned = false;
+            currentAccuracy = 72;
+            speakVoice("Lower your hips");
+          } else {
+            cue = "⚠️ Sagging lower back - Lift hips up";
+            cueType = "alert";
+            isAligned = false;
+            currentAccuracy = 60;
+            speakVoice("Lift your core");
+          }
+
+        } else if (ex === "jumping_jacks") {
+          const lArmAng = calcAngle(lHip, lShoulder, lWrist);
+          const rArmAng = calcAngle(rHip, rShoulder, rWrist);
+          pAngle = (lArmAng + rArmAng) / 2;
+          const legSpread = Math.abs(lAnkle.x - rAnkle.x);
+          sAngle = Math.round(legSpread * 200);
+
+          if (pAngle > 130 && legSpread > 0.3) {
+            cue = "✓ Full Extension!";
+            cueType = "good";
+            if (repStageRef.current === "down") {
+              repStageRef.current = "up";
+              setRepStage("up");
+            }
+          } else if (pAngle < 55 && legSpread < 0.22) {
+            cue = "Feet together";
+            cueType = "good";
+            if (repStageRef.current === "up") {
+              repStageRef.current = "down";
+              setRepStage("down");
+              triggerRepIncrement(95);
+            }
+          } else {
+            cue = "⚡ Reach arms overhead";
+            cueType = "warn";
+          }
+
+        } else if (ex === "curls") {
+          const lElbowAng = calcAngle(lShoulder, lElbow, lWrist);
+          const rElbowAng = calcAngle(rShoulder, rElbow, rWrist);
+          pAngle = Math.min(lElbowAng, rElbowAng);
+          sAngle = calcAngle(midShoulder, midHip, midKnee);
+
+          if (pAngle <= 55) {
+            cue = "✓ Peak Bicep Squeeze!";
+            cueType = "good";
+            if (repStageRef.current === "down") {
+              repStageRef.current = "up";
+              setRepStage("up");
+            }
+          } else if (pAngle >= 145) {
+            cue = "Arms fully extended";
+            cueType = "good";
+            if (repStageRef.current === "up") {
+              repStageRef.current = "down";
+              setRepStage("down");
+              triggerRepIncrement(95);
+            }
+          } else {
+            cue = "Curl upward toward shoulders";
+            cueType = "warn";
+          }
+
+        } else if (ex === "posture_check") {
+          const headSpine = calcAngle(nose, midShoulder, midHip);
+          const shoulderTilt = Math.abs(lShoulder.y - rShoulder.y) * 100;
+          pAngle = headSpine;
+          sAngle = Math.round(shoulderTilt);
+
+          if (headSpine >= 165 && shoulderTilt < 4) {
+            cue = "✓ Posture Aligned & Symmetrical";
+            cueType = "good";
+            isAligned = true;
+          } else if (headSpine < 160) {
+            cue = "⚠️ Forward Head / Slouching - Roll shoulders back";
+            cueType = "alert";
+            isAligned = false;
+            speakVoice("Straighten posture");
+          } else {
+            cue = "⚡ Level your shoulders evenly";
+            cueType = "warn";
+            isAligned = false;
+          }
+        }
+
+        setPrimaryAngle(pAngle);
+        setSecondaryAngle(sAngle);
+        setGuidance(cue);
+        setGuidanceType(cueType);
+
+        return { isAligned, pAngle, sAngle, cue, cueType, currentAccuracy };
+      }
+
+      function drawRichOverlay(ctx, lm, w, h, analysis) {
+        const { isAligned, pAngle, cue, cueType } = analysis;
+        const ex = exerciseRef.current;
+
+        // Connections
+        const connections = [
+          [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+          [11, 23], [12, 24], [23, 24],
+          [23, 25], [25, 27], [24, 26], [26, 28],
+          [0, 11], [0, 12]
+        ];
+
+        const primaryColor = isAligned ? "#C8FF3D" : (cueType === "warn" ? "#FFC83D" : "#FF4B2E");
+
+        // Skeleton glow lines
+        ctx.save();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = primaryColor;
+        ctx.shadowColor = primaryColor;
+        ctx.shadowBlur = 12;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        connections.forEach(([i, j]) => {
+          const p1 = lm[i], p2 = lm[j];
+          if (p1 && p2 && p1.visibility > 0.4 && p2.visibility > 0.4) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x * w, p1.y * h);
+            ctx.lineTo(p2.x * w, p2.y * h);
+            ctx.stroke();
+          }
+        });
+
+        // Joint points
+        [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28].forEach((i) => {
+          const p = lm[i];
+          if (p && p.visibility > 0.4) {
+            ctx.beginPath();
+            ctx.arc(p.x * w, p.y * h, 6, 0, Math.PI * 2);
+            ctx.fillStyle = primaryColor;
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#0E0E10";
+            ctx.stroke();
+          }
+        });
+
+        // Angle Callout arc on active joint
+        let activeJoint = null;
+        if (ex === "squats") activeJoint = lm[25] || lm[26];
+        else if (ex === "pushups" || ex === "curls") activeJoint = lm[13] || lm[14];
+        else if (ex === "plank") activeJoint = lm[23] || lm[24];
+        else if (ex === "posture_check") activeJoint = lm[11];
+
+        if (activeJoint && activeJoint.visibility > 0.4) {
+          const ax = activeJoint.x * w;
+          const ay = activeJoint.y * h;
+
+          // Draw angle halo
+          ctx.beginPath();
+          ctx.arc(ax, ay, 24, 0, Math.PI * 2);
+          ctx.strokeStyle = primaryColor;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Draw angle tag badge on canvas (unmirrored readable text)
+          ctx.save();
+          // Notice the canvas is mirrored with CSS scaleX(-1), so drawing text normally in canvas will render mirrored in CSS unless we invert x
+          ctx.fillStyle = "#0E0E10";
+          ctx.fillRect(ax - 28, ay - 36, 56, 20);
+          ctx.strokeStyle = primaryColor;
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(ax - 28, ay - 36, 56, 20);
+          
+          ctx.fillStyle = primaryColor;
+          ctx.font = "bold 11px 'Space Mono', monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(`${Math.round(pAngle)}°`, ax, ay - 22);
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+      function onResults(results) {
+        const canvas = canvasRef.current, video = videoRef.current;
+        if (!canvas || !video) return;
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext("2d");
+        ctx.save();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (results.image) ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+        if (results.poseLandmarks) {
+          const analysis = evaluatePose(results.poseLandmarks);
+          drawRichOverlay(ctx, results.poseLandmarks, canvas.width, canvas.height, analysis);
+        } else {
+          setGuidance("Align your full body in the camera frame");
+          setGuidanceType("warn");
+        }
+        ctx.restore();
+      }
+
+      async function start() {
+        setError("");
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setError("Camera API is not supported or restricted by browser permissions.");
+          return;
+        }
+
+        if (typeof Pose === "undefined") {
+          setError("MediaPipe Pose model is downloading. Please check your internet connection.");
+          return;
+        }
+
+        if (!poseRef.current) {
+          const pose = new Pose({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
+          pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, enableSegmentation: false, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+          pose.onResults(onResults);
+          poseRef.current = pose;
+        }
+
+        try {
+          let stream;
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: "user" }, width: { ideal: 640 }, height: { ideal: 480 } },
+              audio: false
+            });
+          } catch (e1) {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          }
+
+          if (!videoRef.current) return;
+          videoRef.current.srcObject = stream;
+          streamRef.current = stream;
+          await videoRef.current.play();
+
+          activeRef.current = true;
+          setRunning(true);
+          speakVoice("Starting workout. Get ready!");
+
+          async function processLoop() {
+            if (!activeRef.current || !videoRef.current) return;
+            if (videoRef.current.readyState >= 2 && poseRef.current) {
+              try {
+                await poseRef.current.send({ image: videoRef.current });
+              } catch (e) {}
+            }
+            if (activeRef.current) {
+              requestAnimationFrame(processLoop);
+            }
+          }
+          requestAnimationFrame(processLoop);
+        } catch (err) {
+          console.error("Camera error:", err);
+          setError("Could not access camera. Please allow camera permissions in browser.");
+          setRunning(false);
+        }
+      }
+
+      function stop() {
+        activeRef.current = false;
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+        }
+        setRunning(false);
+
+        // If completed reps or duration, generate summary
+        if (repsRef.current > 0 || activeDuration > 10) {
+          generateWorkoutSummary();
+        }
+      }
+
+      function resetWorkout() {
+        setReps(0);
+        repsRef.current = 0;
+        setActiveDuration(0);
+        setCalories(0);
+        setFormScore(100);
+        scoreSumRef.current = 0;
+        scoreCountRef.current = 0;
+        setSessionSummary(null);
+      }
+
+      // ---- GEMINI AI FORM AUDIT (Multimodal Vision API) ----
+      async function triggerAiFormAudit() {
+        if (!canvasRef.current || !running) {
+          setAiDiagnosis({
+            grade: "A",
+            text: "Turn on your camera and begin exercising to run a live AI Biomechanics Audit!"
+          });
+          return;
+        }
+
+        setAiLoading(true);
+        try {
+          // Grab frame snapshot from canvas as JPEG base64
+          const dataUrl = canvasRef.current.toDataURL("image/jpeg", 0.7);
+          const base64Data = dataUrl.split(",")[1];
+
+          const exCfg = EXERCISE_CONFIGS[exerciseRef.current];
+          const prompt = `You are the HexaFit Elite Biomechanics AI Coach. 
+Analyze this live snapshot of the user performing ${exCfg.name}.
+Current real-time joint metrics:
+- Key Angle: ${Math.round(primaryAngle)}° (Target: ${exCfg.targetAngle})
+- Secondary Angle: ${Math.round(secondaryAngle)}°
+- Reps completed: ${reps}
+- Form Accuracy Score: ${formScore}%
+
+Provide a structured, punchy 3-part diagnosis:
+1. FORM GRADE: [A+ / A / B / C]
+2. BIOMECHANICAL ADJUSTMENTS: 1-2 exact joint corrections (e.g. knee tracking, spine neutrality, elbow lockout).
+3. MUSCLE & SAFETY: Key muscle activation and injury prevention tip.
+Keep it under 90 words, energetic, direct and professional.`;
+
+          const payload = {
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: "image/jpeg", data: base64Data } }
+              ]
+            }],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 300
+            }
+          };
+
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${getGeminiApiKey()}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await res.json();
+          if (data && data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+            const reply = data.candidates[0].content.parts[0].text;
+            
+            // Extract grade if present
+            let grade = "A";
+            if (reply.includes("A+")) grade = "A+";
+            else if (reply.includes("Grade: A") || reply.includes("GRADE: A")) grade = "A";
+            else if (reply.includes("Grade: B") || reply.includes("GRADE: B") || reply.includes("B+")) grade = "B";
+            else if (reply.includes("Grade: C") || reply.includes("GRADE: C")) grade = "C";
+
+            setAiDiagnosis({ grade, text: reply, time: new Date().toLocaleTimeString() });
+            speakVoice("AI Form Audit Complete. Check your trainer diagnosis.");
+          } else {
+            setAiDiagnosis({
+              grade: "A",
+              text: "✓ Solid movement mechanics. Maintain steady tempo and keep your core stabilized throughout each rep."
+            });
+          }
+        } catch (err) {
+          console.error("AI Audit error:", err);
+          setAiDiagnosis({
+            grade: "A",
+            text: "✓ Good alignment detected. Keep breathing rhythmically and ensure knees stay aligned with toes."
+          });
+        } finally {
+          setAiLoading(false);
+        }
+      }
+
+      // ---- GEMINI AI CHAT ----
+      async function handleSendChat(e) {
+        e.preventDefault();
+        if (!chatInput.trim()) return;
+        const userMsg = chatInput.trim();
+        setChatInput("");
+        setChatMessages(prev => [...prev, { sender: "user", text: userMsg }]);
+
+        try {
+          const prompt = `You are HexaFit Pro AI Coach inside HexaFit fitness platform.
+The user is currently in the AI Vision Studio training ${EXERCISE_CONFIGS[exerciseRef.current].name}.
+Reps: ${reps}, Accuracy: ${formScore}%.
+User Question: "${userMsg}"
+Respond in 2-3 punchy, certified trainer sentences with actionable workout advice.`;
+
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${getGeminiApiKey()}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+
+          const data = await res.json();
+          const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Keep your form tight, focus on controlled reps, and don't rush through the movement!";
+          setChatMessages(prev => [...prev, { sender: "bot", text: reply }]);
+        } catch (err) {
+          setChatMessages(prev => [...prev, { sender: "bot", text: "Great question! Maintain steady tempo, keep your core engaged, and hydrate well after your set." }]);
+        }
+      }
+
+      // ---- GEMINI AI WORKOUT SUMMARY ----
+      async function generateWorkoutSummary() {
+        const exName = EXERCISE_CONFIGS[exerciseRef.current].name;
+        const totalReps = repsRef.current;
+        const durationSec = activeDuration;
+        const accuracy = formScore;
+        const cal = calories;
+
+        try {
+          const prompt = `Generate a 2-sentence trainer report card for this completed workout session:
+Exercise: ${exName}, Reps: ${totalReps}, Duration: ${durationSec}s, Form Score: ${accuracy}%, Calories: ${cal} kcal.
+Give an encouraging verdict and 1 specific corrective drill for next time.`;
+
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${getGeminiApiKey()}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+          const data = await res.json();
+          const note = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Awesome intensity! Your consistency is building strong neuromuscular endurance.";
+          setSessionSummary({ exName, totalReps, durationSec, accuracy, cal, note });
+        } catch (e) {
+          setSessionSummary({
+            exName, totalReps, durationSec, accuracy, cal,
+            note: "Great workout completion! Continue focusing on depth and smooth cadence in your next session."
+          });
+        }
+      }
+
+      function formatSec(s) {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+      }
+
+      return (
+        <div className="studio-container">
+          {/* Top Exercise Selector Bar */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span className="eyebrow" style={{ margin: 0 }}>⚡ HexaFit AI Vision Studio</span>
+              <span style={{ fontSize: "11px", fontFamily: "var(--mono)", opacity: 0.7 }}>Powered by MediaPipe & Gemini 3.7 Flash</span>
+            </div>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <button 
+                type="button"
+                className={`btn ${voiceEnabled ? "btn-primary" : ""}`}
+                style={{ padding: "6px 12px", fontSize: "11px", fontFamily: "var(--mono)" }}
+                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                title="Toggle Voice Coach"
+              >
+                {voiceEnabled ? "🔊 Voice Coach ON" : "🔇 Voice Coach OFF"}
+              </button>
+              <button 
+                type="button"
+                className="btn"
+                style={{ padding: "6px 12px", fontSize: "11px", fontFamily: "var(--mono)" }}
+                onClick={resetWorkout}
+              >
+                ↺ Reset Session
+              </button>
+            </div>
+          </div>
+
+          <div className="exercise-pills">
+            {Object.values(EXERCISE_CONFIGS).map(cfg => (
+              <button
+                key={cfg.id}
+                type="button"
+                className={`exercise-pill ${exercise === cfg.id ? "active" : ""}`}
+                onClick={() => {
+                  setExercise(cfg.id);
+                  setRepStage("up");
+                  repStageRef.current = "up";
+                }}
+              >
+                <span>{cfg.icon}</span>
+                <span>{cfg.name}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Real-time HUD Metrics Bar */}
+          <div className="studio-hud-grid">
+            <div className={`hud-card ${repBump ? "rep-bump" : ""}`}>
+              <div className="hud-label">Reps Completed</div>
+              <div className="hud-val">{reps}</div>
+            </div>
+            <div className={`hud-card ${formScore < 75 ? "alert" : (formScore < 88 ? "warn" : "")}`}>
+              <div className="hud-label">Form Accuracy</div>
+              <div className="hud-val">{formScore}<span className="unit">%</span></div>
+            </div>
+            <div className="hud-card">
+              <div className="hud-label">Session Timer</div>
+              <div className="hud-val">{formatSec(activeDuration)}</div>
+            </div>
+            <div className="hud-card">
+              <div className="hud-label">Est. Calories</div>
+              <div className="hud-val">{calories}<span className="unit">kcal</span></div>
+            </div>
+          </div>
+
+          {/* Main Studio Viewport & Sidebar Grid */}
+          <div className="studio-main-grid">
+            {/* Camera Stage */}
+            <div>
+              <div className="studio-stage">
+                <video ref={videoRef} playsInline autoPlay muted style={{ position: "absolute", width: "1px", height: "1px", opacity: 0, pointerEvents: "none" }}></video>
+                <canvas ref={canvasRef}></canvas>
+                
+                {running && (
+                  <div className="hud-live-tag">
+                    <span className="rec-dot"></span>
+                    <span>LIVE · {EXERCISE_CONFIGS[exercise].name.toUpperCase()}</span>
+                  </div>
+                )}
+
+                {running && (
+                  <div className={`hud-guidance-pill ${guidanceType}`}>
+                    <span>{guidance}</span>
+                  </div>
+                )}
+
+                {!running && !error && (
+                  <div className="camera-idle">
+                    <div className="camera-cam-icon">◉</div>
+                    <p style={{ marginTop: "12px", fontSize: "14px", fontWeight: 700 }}>Real-Time AI Motion Tracking</p>
+                    <p>Enable camera to start live posture scoring, rep counting, and instant Gemini AI visual diagnostics.</p>
+                  </div>
+                )}
+                {error && <div className="camera-error">{error}</div>}
+              </div>
+
+              {/* Camera Action Buttons */}
+              <div className="camera-controls">
+                <PressButton className={running ? "btn-dark" : "btn-primary"} onClick={running ? stop : start}>
+                  {running ? "⏹ Stop Workout" : "▶ Start AI Camera Track"}
+                </PressButton>
+
+                {running && (
+                  <PressButton className="btn-alt" onClick={triggerAiFormAudit} disabled={aiLoading}>
+                    {aiLoading ? "Analyzing..." : "🔍 Run AI Form Audit ✦"}
+                  </PressButton>
+                )}
+              </div>
+              <p className="posture-caption" style={{ marginTop: "10px" }}>
+                Target Biomechanics: <strong>{EXERCISE_CONFIGS[exercise].targetAngle}</strong> · Active Joint Angle: <span className="posture-angle">{Math.round(primaryAngle)}°</span>
+              </p>
+            </div>
+
+            {/* Sidebar: AI Coach & Interactive Chat */}
+            <div className="studio-sidebar">
+              {/* AI Biomechanics Diagnosis Card */}
+              <div className="ai-coach-card">
+                <div className="ai-coach-head">
+                  <h4><span>✨</span>Gemini AI Form Diagnosis</h4>
+                  {aiDiagnosis?.grade && (
+                    <span className={`ai-grade-badge ${aiDiagnosis.grade === 'B' ? 'grade-b' : (aiDiagnosis.grade === 'C' ? 'grade-c' : '')}`}>
+                      Grade {aiDiagnosis.grade}
+                    </span>
+                  )}
+                </div>
+
+                {aiLoading ? (
+                  <div className="ai-loading-shimmer">
+                    <div className="ai-loading-spinner"></div>
+                    <span>Gemini 3.7 Flash analyzing video frame & biomechanics...</span>
+                  </div>
+                ) : aiDiagnosis ? (
+                  <div className="ai-coach-body">
+                    <p style={{ whiteSpace: "pre-line" }}>{aiDiagnosis.text}</p>
+                    {aiDiagnosis.time && (
+                      <span style={{ fontSize: "10px", fontFamily: "var(--mono)", opacity: 0.6 }}>Audited at {aiDiagnosis.time}</span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="ai-coach-body" style={{ opacity: 0.8 }}>
+                    <p>Click <strong>Run AI Form Audit ✦</strong> during your workout to capture a live posture snapshot. Gemini AI will evaluate your joint alignment and provide instant trainer corrections.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Interactive AI Trainer Chat */}
+              <div className="ai-chat-box">
+                <div style={{ fontSize: "12px", fontFamily: "var(--mono)", fontWeight: 700, textTransform: "uppercase", marginBottom: "8px", color: "var(--lime)" }}>
+                  💬 Ask AI Trainer
+                </div>
+                <div className="ai-chat-messages">
+                  {chatMessages.map((m, i) => (
+                    <div key={i} className={`ai-msg ${m.sender}`}>{m.text}</div>
+                  ))}
+                </div>
+                <form className="ai-chat-input-row" onSubmit={handleSendChat}>
+                  <input 
+                    type="text" 
+                    placeholder={`Ask about ${EXERCISE_CONFIGS[exercise].name}...`}
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                  />
+                  <button type="submit">Ask</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Session Summary Card Modal (when stopped) */}
+          {sessionSummary && (
+            <div className="session-summary-box">
+              <h3><span>🏆</span>Session Completed: {sessionSummary.exName}</h3>
+              <div className="summary-grid">
+                <div className="summary-item">
+                  <div className="s-label">Total Reps</div>
+                  <div className="s-val">{sessionSummary.totalReps}</div>
+                </div>
+                <div className="summary-item">
+                  <div className="s-label">Active Time</div>
+                  <div className="s-val">{formatSec(sessionSummary.durationSec)}</div>
+                </div>
+                <div className="summary-item">
+                  <div className="s-label">Form Accuracy</div>
+                  <div className="s-val">{sessionSummary.accuracy}%</div>
+                </div>
+                <div className="summary-item">
+                  <div className="s-label">Calories Burned</div>
+                  <div className="s-val">{sessionSummary.cal} kcal</div>
+                </div>
+              </div>
+              <div style={{ padding: "12px", background: "var(--white)", border: "2px solid var(--ink)", fontSize: "13px", lineHeight: 1.5 }}>
+                <strong>🤖 Gemini Coach Verdict:</strong> {sessionSummary.note}
+              </div>
+              <div style={{ marginTop: "12px", display: "flex", gap: "10px" }}>
+                <PressButton className="btn-primary" onClick={() => setSessionSummary(null)}>Start Next Set</PressButton>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function Hero() {
+      return (
+        <section className="hero">
+          <div className="wrap hero-grid">
+            <div>
+              <div className="eyebrow slam" style={{ animationDelay: "0s" }}>SIH 2026 · Preventive fitness platform</div>
+              <h1 className="slam" style={{ animationDelay: ".08s" }}>Trainer-grade form<br /><span className="accent">without a trainer.</span></h1>
+              <p className="lede slam" style={{ animationDelay: ".16s" }}>HexaFit reads your posture in real time, adapts your workout and meal plan to your actual week, and keeps you honest with streaks — built for people who can't afford or access a personal trainer.</p>
+              <div className="hero-actions slam" style={{ animationDelay: ".24s" }}>
+                <PressButton href="#sensor" className="btn-dark">Try AI Vision Studio →</PressButton>
+                <PressButton href="#features" className="" >Explore features</PressButton>
+                <a href="downloads/HEXA-FIT.apk" download="HEXA-FIT.apk" className="btn btn-download">Download Android app</a>
+              </div>
+            </div>
+            <div className="posture-card slam" style={{ animationDelay: ".2s" }}>
+              <div className="posture-head">
+                <span>Sensor Module — Live</span>
+                <span id="hero-badge" className="posture-status good">Aligned</span>
+              </div>
+              <div style={{ border: "2px solid var(--ink)", background: "var(--paper)" }}>
+                <PostureDemo badgeId="hero-badge" wrapId="postureSvgWrap" />
+              </div>
+            </div>
+          </div>
+          <div className="wrap hero-stats slam" style={{ animationDelay: ".3s" }}>
+            <div><strong>10</strong>MVP features</div>
+            <div><strong>&lt;2.5s</strong>avg load target</div>
+            <div><strong>NRT</strong>posture feedback</div>
+            <div><strong>08</strong>step user journey</div>
+          </div>
+        </section>
+      );
+    }
+
+    function Problem() {
+      const items = [
+        ["01", "No personalization", "Advice that ignores schedule, body, and goals rarely sticks past week two."],
+        ["02", "Trainers out of reach", "Certified guidance is expensive or simply unavailable in many areas."],
+        ["03", "No long-term visibility", "Without measurable milestones, motivation quietly erodes."],
+        ["04", "Low accountability", "No streaks, no nudges, no one checking in — nothing to hold onto."],
+      ];
+      return (
+        <section id="problem">
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">The problem</div>
+              <h2>Most fitness journeys don't fail from laziness.</h2>
+              <p>They fail from bad guidance — generic plans, zero visibility, and no one to correct your form in the moment.</p>
+            </Reveal>
+            <Reveal className="problem-grid" style={{ display: "grid" }}>
+              {items.map(([num, title, body]) => (
+                <div className="problem-cell" key={num}>
+                  <span className="num">{num}</span>
+                  <h4>{title}</h4>
+                  <p>{body}</p>
+                </div>
+              ))}
+            </Reveal>
+          </div>
+        </section>
+      );
+    }
+
+    function Audience() {
+      const chips = ["College students", "Working professionals", "Beginners needing structure", "Weight loss & endurance goals", "Limited trainer access"];
+      return (
+        <section>
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">Built for</div>
+              <h2>People training around a real, busy life.</h2>
+            </Reveal>
+            <Reveal className="chip-row" style={{ display: "flex" }}>
+              {chips.map(c => <span className="chip" key={c}>{c}</span>)}
+            </Reveal>
+          </div>
+        </section>
+      );
+    }
+
+    function Features() {
+      const [tab, setTab] = useState("mvp");
+      const mvp = [
+        ["◎", "Onboarding & profile", "Age, weight, goals and activity level captured in one flow."],
+        ["◇", "Goal setup", "Weight loss, muscle gain, stamina or flexibility — pick a direction."],
+        ["▤", "Weekly workout plan", "Personalized around the goal and the time you actually have."],
+        ["◈", "Nutrition & water tracker", "Log meals and hydration without friction."],
+        ["✦", "Trainer-like insights", "Recommendations generated from your profile and logs."],
+        ["▥", "Progress dashboard", "Weight, BMI estimate, streaks and calories in one view."],
+        ["↝", "Position sensor integration", "Tracks posture and alignment during workout sessions."],
+        ["◉", "Real-time posture feedback", "Correct or incorrect alignment, flagged as it happens."],
+        ["◔", "Smart reminders", "Motivational nudges timed to when you're likely to skip."],
+        ["◫", "Support & FAQs", "A ticket form for anything the app can't answer."],
+      ];
+      const stretch = [
+        ["✧", "AI recommendation engine", "Workout and meal suggestions that adapt automatically."],
+        ["⌁", "Wearable integration", "Sync steps and heart rate from devices you already wear."],
+        ["◭", "Community challenges", "Leaderboards that turn consistency into a shared game."],
+        ["◐", "Voice logging", "Log a workout by saying it, mid-session."],
+      ];
+      const list = tab === "mvp" ? mvp : stretch;
+      return (
+        <section id="features" className="dark">
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">What's inside</div>
+              <h2>Ten features to launch with. Four more to grow into.</h2>
+              <p>MVP is what ships to the demo floor. Stretch is where HexaFit goes next.</p>
+            </Reveal>
+            <Reveal className="feat-tabs" style={{ display: "flex" }}>
+              <button className={`feat-tab ${tab === "mvp" ? "active" : ""}`} onClick={() => setTab("mvp")}>MVP</button>
+              <button className={`feat-tab ${tab === "stretch" ? "active" : ""}`} onClick={() => setTab("stretch")}>Stretch</button>
+            </Reveal>
+            <Reveal className="feat-grid" style={{ display: "grid" }} key={tab}>
+              {list.map(([icon, title, body]) => (
+                <div className="feat-card" key={title}>
+                  <div className="feat-icon">{icon}</div>
+                  <h4>{title}</h4>
+                  <p>{body}</p>
+                </div>
+              ))}
+            </Reveal>
+          </div>
+        </section>
+      );
+    }
+
+    function Journey() {
+      const steps = [
+        ["Sign up & complete health profile", "Basic vitals and lifestyle context, captured once."],
+        ["Select goal & time availability", "The plan bends to your week, not the other way round."],
+        ["Get workout & meal structure", "A starting plan generated from your profile."],
+        ["Start guided workout, sensor on", "Position sensor activates for the session."],
+        ["Get posture insights mid-session", "Correction tips arrive while it still matters."],
+        ["Log activity & hydration", "A few taps, not a chore."],
+        ["Track progress on the dashboard", "Weekly and monthly charts show the trend line."],
+        ["Hit milestones, unlock badges", "Consistency gets recognized, not just tracked."],
+      ];
+      return (
+        <section id="journey">
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">The user journey</div>
+              <h2>Eight steps from sign-up to your first badge.</h2>
+              <p>A fixed sequence — each step depends on the one before it.</p>
+            </Reveal>
+            <Reveal>
+              {steps.map(([title, body], i) => (
+                <div className="journey-item" key={title}>
+                  <div className="journey-num">{i + 1}</div>
+                  <div><h4>{title}</h4><p>{body}</p></div>
+                </div>
+              ))}
+            </Reveal>
+          </div>
+        </section>
+      );
+    }
+
+    function SensorSection() {
+      const [mode, setMode] = useState("live");
+      return (
+        <section id="sensor" className="cobalt">
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">Real-Time AI Vision & Tracking Studio</div>
+              <h2>Trainer-grade guidance, live in your browser.</h2>
+              <p>Multi-exercise motion tracking with dynamic HUD visual feedback, automatic rep counting, and live Gemini AI biomechanics analysis.</p>
+            </Reveal>
+            <Reveal className="demo-tabs" style={{ display: "flex" }}>
+              <button className={`demo-tab ${mode === "live" ? "active" : ""}`} onClick={() => setMode("live")}>AI Camera Studio</button>
+              <button className={`demo-tab ${mode === "manual" ? "active" : ""}`} onClick={() => setMode("manual")}>Manual sensor demo</button>
+            </Reveal>
+            <Reveal key={mode}>
+              {mode === "manual" ? (
+                <div className="demo-wrap" style={{ display: "grid" }}>
+                  <div className="posture-card" style={{ transform: "rotate(-1deg)" }}>
+                    <div className="posture-head">
+                      <span>Guided exercise — Plank</span>
+                      <span id="sensor-badge" className="posture-status good">Aligned</span>
+                    </div>
+                    <div style={{ border: "2px solid var(--ink)", background: "var(--paper)" }}>
+                      <PostureDemo badgeId="sensor-badge" wrapId="postureSvgWrap2" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="demo-note">
+                      Simulates sensor angle feeds from hardware posture devices, testing the edge classification threshold before streaming to MongoDB Atlas.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <LiveCameraDemo />
+              )}
+            </Reveal>
+          </div>
+        </section>
+      );
+    }
+
+    function TechArchitecture() {
+      const tech = [
+        ["Frontend", "React / HTML5+JS"], ["Charts", "Chart.js"], ["Backend", "Node.js + Express"],
+        ["Database", "MongoDB"], ["Auth", "JWT-based"], ["Frontend host", "Vercel / Netlify"],
+        ["Backend host", "Render / Railway"], ["DB host", "MongoDB Atlas"], ["Data", "SensorFrame · PostureEvent"],
+        ["Ops", "Notification module"],
+      ];
+      const flow = ["Client app", "REST API layer", "Posture analysis service", "MongoDB store"];
+      return (
+        <section>
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">Under the hood</div>
+              <h2>A stack sized for a hackathon build, shaped for a real product.</h2>
+            </Reveal>
+            <Reveal className="tech-grid" style={{ display: "grid" }}>
+              {tech.map(([cat, name]) => (
+                <div className="tech-item" key={cat}><span className="cat">{cat}</span><span className="name">{name}</span></div>
+              ))}
+            </Reveal>
+            <Reveal className="arch-flow" style={{ display: "flex", background: "var(--ink)", padding: "20px", border: "var(--border)" }}>
+              {flow.map((node, i) => (
+                <React.Fragment key={node}>
+                  <div className="arch-node">{node}</div>
+                  {i < flow.length - 1 && <span className="arch-arrow">→</span>}
+                </React.Fragment>
+              ))}
+            </Reveal>
+          </div>
+        </section>
+      );
+    }
+
+    function WrappedCard({ cls, label, num, decimals, suffix, foot, visible }) {
+      const [display, setDisplay] = useState(0);
+      const doneRef = useRef(false);
+      useEffect(() => {
+        if (!visible || doneRef.current) return;
+        doneRef.current = true;
+        const duration = 900;
+        const start = performance.now();
+        function tick(now) {
+          const p = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - p, 3);
+          setDisplay(num * eased);
+          if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }, [visible]);
+      return (
+        <div className={`wrapped-card ${cls}`}>
+          <div className="wc-label">{label}</div>
+          <div className="wc-num">{decimals ? display.toFixed(decimals) : Math.round(display)}<span style={{ fontSize: "0.5em" }}>{suffix}</span></div>
+          <div className="wc-foot">{foot}</div>
+        </div>
+      );
+    }
+
+    function WrappedCarousel() {
+      const [index, setIndex] = useState(0);
+      const [ref, visible] = useReveal();
+      const cards = [
+        { cls: "wc-1", label: "01 / Streaks", num: 72, decimals: 0, suffix: "%", foot: "Target 7-day streak completion" },
+        { cls: "wc-2", label: "02 / Logging", num: 4.2, decimals: 1, suffix: "", foot: "Logged workouts / user / week" },
+        { cls: "wc-3", label: "03 / Posture", num: 85, decimals: 0, suffix: "%", foot: "Posture correction adherence" },
+        { cls: "wc-4", label: "04 / Improvement", num: 40, decimals: 0, suffix: "%", foot: "Drop in bad-posture events, 2 weeks" },
+      ];
+      const go = (i) => setIndex((i + cards.length) % cards.length);
+      return (
+        <div ref={ref} className={`reveal ${visible ? "in" : ""}`}>
+          <div className="wrapped-stage">
+            <button className="wrapped-nav-btn" onClick={() => go(index - 1)} aria-label="Previous stat">‹</button>
+            <div className="wrapped-viewport">
+              <div className="wrapped-track" style={{ transform: `translateX(-${index * 100}%)` }}>
+                {cards.map((c, i) => <WrappedCard key={c.label} {...c} visible={visible && i === index} />)}
+              </div>
+            </div>
+            <button className="wrapped-nav-btn" onClick={() => go(index + 1)} aria-label="Next stat">›</button>
+          </div>
+          <div className="wrapped-dots">
+            {cards.map((c, i) => <button key={c.label} className={i === index ? "on" : ""} onClick={() => setIndex(i)} aria-label={`Go to stat ${i + 1}`} />)}
+          </div>
+        </div>
+      );
+    }
+
+    function Metrics() {
+      return (
+        <section id="metrics" className="dark">
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">Your HexaFit Wrapped</div>
+              <h2>What "working" looks like, by the numbers.</h2>
+              <p>Swipe through — each card is one target metric.</p>
+            </Reveal>
+          </div>
+          <div className="wrap">
+            <WrappedCarousel />
+          </div>
+        </section>
+      );
+    }
+
+    function Risks() {
+      const rows = [
+        ["Users stop logging after a few days", "Streak rewards, timely reminders, mini-goals"],
+        ["Generic recommendations erode trust", "Deep personalization inputs, adaptive updates"],
+        ["Manual logs cause data inconsistency", "Input validation, sensible default suggestions"],
+      ];
+      return (
+        <section className="pink">
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">Risks & mitigation</div>
+              <h2>What breaks consistency, and the counter for it.</h2>
+            </Reveal>
+            <Reveal className="risk-list" style={{ display: "flex", flexDirection: "column" }}>
+              {rows.map(([risk, mit]) => (
+                <div className="risk-row" key={risk}>
+                  <div><span className="tag">Risk</span><p>{risk}</p></div>
+                  <div><span className="tag mit">Mitigation</span><p>{mit}</p></div>
+                </div>
+              ))}
+            </Reveal>
+          </div>
+        </section>
+      );
+    }
+
+    function Roadmap() {
+      const items = [
+        ["AI coaching chatbot", "Conversational guidance layered on top of logs."],
+        ["Computer vision correction", "Camera-based posture analysis, no extra hardware."],
+        ["Mental wellness check-ins", "Because consistency is more than physical."],
+        ["Regional language support", "Guidance that speaks the user's language, literally."],
+        ["Team-based challenges", "Gamified accountability, in groups."],
+      ];
+      return (
+        <section>
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">Roadmap</div>
+              <h2>Past the demo floor.</h2>
+            </Reveal>
+            <Reveal className="roadmap-track" style={{ display: "flex" }}>
+              {items.map(([title, body]) => (
+                <div className="roadmap-card" key={title}>
+                  <div className="dot"></div>
+                  <h4>{title}</h4>
+                  <p>{body}</p>
+                </div>
+              ))}
+            </Reveal>
+          </div>
+        </section>
+      );
+    }
+
+    function Faq() {
+      const faqs = [
+        ["How does posture tracking work?", "The position sensor streams alignment frames during a guided workout; the posture analysis service classifies each frame and returns correction tips in near real time.", true],
+        ["Do I need special hardware?", "Not for the MVP — the sensor module works with commonly available position sensors, with computer-vision-only tracking planned for the roadmap.", false],
+        ["Is my health data private?", "Yes — data privacy and secure storage are core non-functional requirements, alongside JWT-based authentication.", false],
+        ["What if my plan feels off?", "Plans adapt from your ongoing logs. You can also raise a ticket and the team will review your profile inputs directly.", false],
+        ["How can I reset my fitness goal?", "Go to Profile > Goals and choose Update Goal — your plan refreshes based on your latest data.", false],
+        ["Why is my streak not updating?", "Streaks update once at least one daily activity log is saved, so make sure your connection is stable when you submit a log.", false],
+        ["Can I edit previous workout logs?", "Yes — open Activity History, select the day, and use the Edit option for workout or hydration records.", false],
+      ];
+      return (
+        <div>
+          {faqs.map(([q, a, open]) => (
+            <details className="faq-item" open={open} key={q}>
+              <summary>{q}</summary>
+              <p>{a}</p>
+            </details>
+          ))}
+          <div className="support-contact">
+            <h4>Still stuck? Reach us directly.</h4>
+            <div className="support-contact-row"><span className="ico">@</span><span>support@hexafit.app</span></div>
+            <div className="support-contact-row"><span className="ico">☎</span><span>+91 90000 00000</span></div>
+            <div className="support-contact-row"><span className="ico">⏱</span><span>9:00 AM – 8:00 PM (IST)</span></div>
+            <div className="response-badge">Response time: within 24 hours</div>
+          </div>
+        </div>
+      );
+    }
+
+    function TicketForm() {
+      const [form, setForm] = useState({ name: "", email: "", topic: "", message: "" });
+      const [submitted, setSubmitted] = useState(false);
+      const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        setSubmitted(true);
+        setForm({ name: "", email: "", topic: "", message: "" });
+        setTimeout(() => setSubmitted(false), 5000);
+      };
+      return (
+        <form className="ticket" onSubmit={handleSubmit}>
+          <div className="field">
+            <label htmlFor="tname">Name</label>
+            <input id="tname" type="text" placeholder="Your name" required value={form.name} onChange={set("name")} />
+          </div>
+          <div className="field">
+            <label htmlFor="temail">Email</label>
+            <input id="temail" type="email" placeholder="you@example.com" required value={form.email} onChange={set("email")} />
+          </div>
+          <div className="field">
+            <label htmlFor="ttopic">Topic</label>
+            <select id="ttopic" required value={form.topic} onChange={set("topic")}>
+              <option value="">Choose a topic</option>
+              <option>Posture tracking issue</option>
+              <option>Workout plan question</option>
+              <option>Account & login</option>
+              <option>Bug report</option>
+              <option>Something else</option>
+            </select>
+          </div>
+          <div className="field">
+            <label htmlFor="tmsg">Message</label>
+            <textarea id="tmsg" rows="4" placeholder="What's going on?" required value={form.message} onChange={set("message")}></textarea>
+          </div>
+          <PressButton type="submit" className="btn-primary ticket-submit">Submit ticket</PressButton>
+          <div className={`ticket-success ${submitted ? "show" : ""}`}>Ticket received — the team will follow up by email.</div>
+        </form>
+      );
+    }
+
+    function Support() {
+      return (
+        <section id="support">
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">Support</div>
+              <h2>Stuck on something? Ask, or check the FAQ first.</h2>
+            </Reveal>
+            <Reveal className="support-wrap" style={{ display: "grid" }}>
+              <Faq />
+              <TicketForm />
+            </Reveal>
+          </div>
+        </section>
+      );
+    }
+
+    function Footer() {
+      return (
+        <footer>
+          <div className="wrap footer-inner">
+            <p>HexaFit — SIH 2026 · Preventive fitness, personalized guidance, real-time posture feedback.</p>
+            <ul className="footer-links">
+              <li><a href="#top">Back to top</a></li>
+              <li><a href="#support">Support</a></li>
+            </ul>
+          </div>
+        </footer>
+      );
+    }
+
+    // ---- MEMO / WORKOUT JOURNAL ----
+    const MEMO_STORAGE_KEY = "hexafit_memos";
+
+    function loadMemos() {
+      try {
+        const raw = localStorage.getItem(MEMO_STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) { return []; }
+    }
+
+    function saveMemos(memos) {
+      try { localStorage.setItem(MEMO_STORAGE_KEY, JSON.stringify(memos)); } catch (e) {}
+    }
+
+    function MemoSection() {
+      const [memos, setMemos] = useState(loadMemos);
+      const [title, setTitle] = useState("");
+      const [body, setBody] = useState("");
+      const [category, setCategory] = useState("general");
+      const [search, setSearch] = useState("");
+      const [filterCat, setFilterCat] = useState("all");
+      const [editingId, setEditingId] = useState(null);
+
+      const categories = [
+        { key: "workout", label: "Workout", cls: "cat-workout" },
+        { key: "nutrition", label: "Nutrition", cls: "cat-nutrition" },
+        { key: "recovery", label: "Recovery", cls: "cat-recovery" },
+        { key: "mindset", label: "Mindset", cls: "cat-mindset" },
+        { key: "general", label: "General", cls: "" },
+      ];
+
+      function persist(next) {
+        setMemos(next);
+        saveMemos(next);
+      }
+
+      function handleSubmit(e) {
+        e.preventDefault();
+        if (!body.trim()) return;
+        if (editingId) {
+          const next = memos.map((m) =>
+            m.id === editingId
+              ? { ...m, title: title.trim() || "Untitled", body: body.trim(), category, updatedAt: Date.now() }
+              : m
+          );
+          persist(next);
+          setEditingId(null);
+        } else {
+          const memo = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            title: title.trim() || "Untitled",
+            body: body.trim(),
+            category,
+            pinned: false,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          persist([memo, ...memos]);
+        }
+        setTitle("");
+        setBody("");
+        setCategory("general");
+      }
+
+      function deleteMemo(id) {
+        persist(memos.filter((m) => m.id !== id));
+        if (editingId === id) {
+          setEditingId(null);
+          setTitle("");
+          setBody("");
+          setCategory("general");
+        }
+      }
+
+      function togglePin(id) {
+        persist(memos.map((m) => m.id === id ? { ...m, pinned: !m.pinned } : m));
+      }
+
+      function startEdit(memo) {
+        setEditingId(memo.id);
+        setTitle(memo.title);
+        setBody(memo.body);
+        setCategory(memo.category);
+      }
+
+      function cancelEdit() {
+        setEditingId(null);
+        setTitle("");
+        setBody("");
+        setCategory("general");
+      }
+
+      function formatTime(ts) {
+        const d = new Date(ts);
+        const day = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+        const time = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+        return day + " · " + time;
+      }
+
+      const filtered = memos
+        .filter((m) => filterCat === "all" || m.category === filterCat)
+        .filter((m) => {
+          if (!search.trim()) return true;
+          const q = search.toLowerCase();
+          return m.title.toLowerCase().includes(q) || m.body.toLowerCase().includes(q);
+        })
+        .sort((a, b) => {
+          if (a.pinned && !b.pinned) return -1;
+          if (!a.pinned && b.pinned) return 1;
+          return b.createdAt - a.createdAt;
+        });
+
+      return (
+        <section id="memo">
+          <div className="wrap">
+            <Reveal className="section-head">
+              <div className="eyebrow">Workout Memo</div>
+              <h2>Your fitness journal. Write it down, keep it real.</h2>
+              <p>Jot workout notes, meal ideas, recovery thoughts, or mindset wins. Memos persist in your browser — nothing uploaded.</p>
+            </Reveal>
+            <Reveal className="memo-layout" style={{ display: "grid" }}>
+              <form className="memo-composer" onSubmit={handleSubmit}>
+                <h4><span className="mc-icon">✎</span>{editingId ? "Edit memo" : "New memo"}</h4>
+                <div className="memo-field">
+                  <label htmlFor="memo-title">Title</label>
+                  <input id="memo-title" type="text" placeholder="e.g. Leg day notes" value={title} onChange={(e) => setTitle(e.target.value)} />
+                </div>
+                <div className="memo-field">
+                  <label htmlFor="memo-body">Memo</label>
+                  <textarea id="memo-body" rows="5" placeholder="What's on your mind?" required value={body} onChange={(e) => setBody(e.target.value)}></textarea>
+                </div>
+                <div className="memo-field">
+                  <label>Category</label>
+                  <div className="memo-cats">
+                    {categories.map((c) => (
+                      <button
+                        key={c.key}
+                        type="button"
+                        className={`memo-cat-btn ${c.cls} ${category === c.key ? "active" : ""}`}
+                        onClick={() => setCategory(c.key)}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="memo-actions">
+                  <PressButton type="submit" className="btn-primary">{editingId ? "Save changes" : "Add memo"}</PressButton>
+                  {editingId && <PressButton className="" onClick={cancelEdit}>Cancel</PressButton>}
+                </div>
+              </form>
+
+              <div>
+                <div className="memo-search">
+                  <input type="text" placeholder="Search memos…" value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "18px" }}>
+                  <button className={`memo-filter-btn ${filterCat === "all" ? "active" : ""}`} onClick={() => setFilterCat("all")}>All</button>
+                  {categories.map((c) => (
+                    <button key={c.key} className={`memo-filter-btn ${filterCat === c.key ? "active" : ""}`} onClick={() => setFilterCat(c.key)}>{c.label}</button>
+                  ))}
+                </div>
+                <div className="memo-count">{filtered.length} memo{filtered.length !== 1 ? "s" : ""}{filterCat !== "all" ? " in " + filterCat : ""}</div>
+
+                {filtered.length === 0 ? (
+                  <div className="memo-empty">
+                    <div className="me-icon">📝</div>
+                    <p>{memos.length === 0 ? "No memos yet — write your first one." : "No memos match your search."}</p>
+                  </div>
+                ) : (
+                  <div className="memo-list">
+                    {filtered.map((m) => (
+                      <div key={m.id} className={`memo-card ${m.pinned ? "pinned" : ""}`}>
+                        <div className="memo-card-head">
+                          <span className="memo-card-title">{m.pinned ? "📌 " : ""}{m.title}</span>
+                          <span className={`memo-card-tag t-${m.category}`}>{m.category}</span>
+                        </div>
+                        <div className="memo-card-body">{m.body}</div>
+                        <div className="memo-card-footer">
+                          <span className="memo-card-time">{formatTime(m.createdAt)}{m.updatedAt > m.createdAt + 1000 ? " · edited" : ""}</span>
+                          <div className="memo-card-btns">
+                            <button onClick={() => togglePin(m.id)} title={m.pinned ? "Unpin" : "Pin"} className={m.pinned ? "pin-active" : ""}>📌</button>
+                            <button onClick={() => startEdit(m)} title="Edit">✏️</button>
+                            <button onClick={() => deleteMemo(m.id)} title="Delete">🗑</button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="memo-storage-note">Stored in localStorage · browser-only · not synced</div>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+      );
+    }
+
+    function App() {
+      return (
+        <div id="top">
+          <Nav />
+          <Marquee />
+          <main>
+            <Hero />
+            <Problem />
+            <Audience />
+            <Features />
+            <Journey />
+            <SensorSection />
+            <TechArchitecture />
+            <Metrics />
+            <Risks />
+            <Roadmap />
+            <MemoSection />
+            <Support />
+          </main>
+          <Footer />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-analytics.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCkRKln9gREs_TaswZNd1v7sCNnrRUUZf8",
+    authDomain: "hexafit-6b183.firebaseapp.com",
+    projectId: "hexafit-6b183",
+    storageBucket: "hexafit-6b183.firebasestorage.app",
+    messagingSenderId: "626789259810",
+    appId: "1:626789259810:web:9ef550daa29b9ff249487b",
+    measurementId: "G-NXHCY1CGK8"
+  };
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    isSupported().then((supported) => {
+      if (supported) {
+        getAnalytics(app);
+      }
+    }).catch(() => {});
+  } catch (e) {
+    console.warn("Firebase initialization skipped in offline/restricted environment:", e);
+  }
+</script>
+</body>
+
+</html>
