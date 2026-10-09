@@ -141,17 +141,6 @@
     .btn-primary {
       background: var(--lime);
     }
-    .btn-download {
-      background: var(--lime);
-      color: var(--ink);
-    }
-
-    .btn-download::before {
-      content: "↓";
-      font-family: var(--mono);
-      font-weight: 700;
-    }
-
 
     .btn-alt {
       background: var(--pink);
@@ -2492,6 +2481,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef } = React;
+    const APK_DOWNLOAD_URL = "https://github.com/Spandan-cyber/HEXA_FIT/releases/download/1.0.0/HEXA-FIT.apk";
 
     function useReveal() {
       const ref = useRef(null);
@@ -2668,8 +2658,8 @@
             </ul>
             <div className="nav-cta">
               <AuthWidget />
+              <PressButton href={APK_DOWNLOAD_URL} className="btn-primary">Download App ↓</PressButton>
               <PressButton href="#support" className="btn-dark">Get support</PressButton>
-              <a href="downloads/HEXA-FIT.apk" download="HEXA-FIT.apk" className="btn btn-download">Download app</a>
               <PressButton href="#sensor" className="btn-primary">AI Vision Studio ✦</PressButton>
             </div>
             <button className={`hamburger ${open ? "open" : ""}`} aria-label="Toggle menu" aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -2678,6 +2668,7 @@
           </div>
           <nav className={`mobile-panel ${open ? "open" : ""}`}>
             {links.map(([href, label]) => <a key={href} href={href} onClick={() => setOpen(false)}>{label}</a>)}
+            <a href={APK_DOWNLOAD_URL} onClick={() => setOpen(false)}>Download App ↓</a>
           </nav>
         </header>
       );
@@ -3722,9 +3713,9 @@ Give an encouraging verdict and 1 specific corrective drill for next time.`;
               <h1 className="slam" style={{ animationDelay: ".08s" }}>Trainer-grade form<br /><span className="accent">without a trainer.</span></h1>
               <p className="lede slam" style={{ animationDelay: ".16s" }}>HexaFit reads your posture in real time, adapts your workout and meal plan to your actual week, and keeps you honest with streaks — built for people who can't afford or access a personal trainer.</p>
               <div className="hero-actions slam" style={{ animationDelay: ".24s" }}>
+                <PressButton href={APK_DOWNLOAD_URL} className="btn-primary">Download App ↓</PressButton>
                 <PressButton href="#sensor" className="btn-dark">Try AI Vision Studio →</PressButton>
                 <PressButton href="#features" className="" >Explore features</PressButton>
-                <a href="downloads/HEXA-FIT.apk" download="HEXA-FIT.apk" className="btn btn-download">Download Android app</a>
               </div>
             </div>
             <div className="posture-card slam" style={{ animationDelay: ".2s" }}>
@@ -4164,6 +4155,7 @@ Give an encouraging verdict and 1 specific corrective drill for next time.`;
           <div className="wrap footer-inner">
             <p>HexaFit — SIH 2026 · Preventive fitness, personalized guidance, real-time posture feedback.</p>
             <ul className="footer-links">
+              <li><a href={APK_DOWNLOAD_URL}>Download App</a></li>
               <li><a href="#top">Back to top</a></li>
               <li><a href="#support">Support</a></li>
             </ul>
